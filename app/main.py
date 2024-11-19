@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from app.core.config import settings
 from app.routers import gtp_text, reddit
+from app.routers.RedditBias import data_preparation
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="API para pruebas del TFM",
+    description="API for the Master's Thesis",
     version=settings.VERSION,
     docs_url="/docs",
     contact={
@@ -16,6 +17,7 @@ app = FastAPI(
 # Incluir los routers
 app.include_router(gtp_text.router)
 app.include_router(reddit.router)
+app.include_router(data_preparation.router)
 
 
 @app.get("/")
@@ -25,5 +27,4 @@ def read_root():
 
 @app.on_event("startup")
 async def startup_event():
-    print("API GPT está en funcionamiento.")
-    print("Accede a la documentación en: http://127.0.0.1:8000/docs")
+    print("Access documentation: http://127.0.0.1:8000/docs")

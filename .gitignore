@@ -4,3 +4,5 @@ __pycache__/
 pytest.ini
 .vscode/
 tox.ini
+app/external_projects
+*_raw_*.csv

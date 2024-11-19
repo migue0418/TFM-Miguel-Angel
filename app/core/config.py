@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
-# Cargar las variables de entorno del archivo .env
+# Load the environment variables .env
 load_dotenv()
 
 
@@ -11,6 +12,8 @@ class Settings:
     OPEN_AI_KEY: str = os.getenv("OPEN_AI_KEY")
     REDDIT_CLIENT_ID: str = os.getenv("REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET: str = os.getenv("REDDIT_CLIENT_SECRET")
+    DATA_PATH: str = "app/files/redditbias_data"
 
 
 settings = Settings()
+data_path = Path(settings.DATA_PATH)

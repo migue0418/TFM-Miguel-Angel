@@ -57,3 +57,26 @@ def fetch_submissions_by_topic(reddit_client, topic, limit):
             }
         )
     return submissions
+
+
+def fetch_comments_by_query(reddit_client, query, after, before, size):
+    """
+    Obtiene comentarios de Reddit con una búsqueda específica para un periodo de tiempo dado.
+
+    Parameters:
+    - reddit_client: Reddit Client (praw)
+    - query: La búsqueda de términos (por ejemplo, "women are secretary")
+    - after: Timestamp de inicio
+    - before: Timestamp de fin
+    - size: Número de comentarios a recuperar
+    """
+    # Crear lista para almacenar los comentarios
+    comments_list = []
+
+    # Realizar la búsqueda
+    for submission in reddit_client.subreddit("all").comments(
+        limit=size, params={"q": query, "before": before, "after": after}
+    ):
+        comments_list.append({"id": submission.id, "comments": submission.body})
+
+    return comments_list
