@@ -1,5 +1,6 @@
 import torch
 import math
+import re
 
 
 def perplexity_score(sentence, model, tokenizer):
@@ -84,8 +85,8 @@ def get_perplexity_list(df, m, t):
 
 def get_perplexity_list_test(df, m, t, dem):
     """
-    Gets perplexities of all sentences in a DataFrame(contains 2 columns of contrasting sentences)
-    based on given model
+    Gets perplexities of all sentences in a DataFrame(contains 2 columns
+    of contrasting sentences) based on given model
     Parameters
     ----------
     df : pd.DataFrame
@@ -110,3 +111,50 @@ def get_perplexity_list_test(df, m, t, dem):
             perplexity = 0
         perplexity_list.append(perplexity)
     return perplexity_list
+
+
+def process_tweet(sent):
+    """
+    Pre-processes a given sentence
+    Parameters
+    ----------
+    sent : str
+    Given sentence
+
+    Returns
+    -------
+    Processed sentence
+    """
+
+    sent = sent.encode("ascii", errors="ignore").decode()  # check this output
+    # print(sent)
+    sent = re.sub(r"@[^\s]+", "", sent)
+    sent = re.sub(r"https: / /t.co /[^\s]+", "", sent)
+    sent = re.sub(r"http: / /t.co /[^\s]+", "", sent)
+    sent = re.sub(r"http[^\s]+", "", sent)
+
+    sent = re.sub(r"&gt", "", sent)
+
+    # split camel case combined words
+    sent = re.sub(r"([A-Z][a-z]+)", r"\1", re.sub("([A-Z]+)", r" \1", sent))
+
+    sent = sent.lower()
+
+    # remove numbers
+    sent = re.sub(r" \d+", "", sent)
+    # remove words with letter+number
+    sent = re.sub(r"\w+\d+|\d+\w+", "", sent)
+
+    # remove spaces
+    sent = re.sub(r"[\s]+", " ", sent)
+    sent = re.sub(r"[^\w\s.!\-?]", "", sent)
+
+    # remove 2 or more repeated char
+    sent = re.sub(r"(.)\1{2,}", r"\1", sent)
+    sent = re.sub(r" rt ", "", sent)
+
+    sent = re.sub(r"- ", "", sent)
+
+    sent = sent.strip()
+    # print(sent)
+    return sent
