@@ -158,3 +158,61 @@ def process_tweet(sent):
     sent = sent.strip()
     # print(sent)
     return sent
+
+
+def build_dataset_bos_eos(df, demo, dest_path):
+    """
+    Writes data from Dataframe to a text file, each dataframe row line by line in text
+    file appending BOS and EOS token
+    Parameters
+    ----------
+    df : pd.DataFrame
+    Dataframe of biased reddit phrases
+    demo : str
+    Demographic name
+    dest_path : str
+    Path to store text file
+
+    """
+    with dest_path.open("w") as f:
+        data = ""
+
+        for idx, row in df.iterrows():
+            bos_token = "<bos>"
+            eos_token = "<eos>"
+            comment = row["comments_2"]
+            data += bos_token + " " + comment + " " + eos_token + "\n"
+
+        f.write(data)
+
+
+def build_dataset_manual_annot(df, demo, dest_path):
+    """
+    Writes data from Dataframe to a text file, each dataframe row line by line in text file
+    Parameters
+    ----------
+    df : pd.DataFrame
+    Dataframe of biased reddit phrases
+    demo : str
+    Demographic name
+    dest_path : str
+    Path to store text file
+
+    """
+    with dest_path.open("w") as f:
+        data = ""
+
+        for idx, row in df.iterrows():
+            comment = row["comments_processed"]
+            if demo == "orientation":
+                data += "<bos>" + " " + comment + "\n"
+            else:
+                data += comment + "\n"
+
+        f.write(data)
+
+
+def replace_with_caps(text, replacements):
+    for i, j in replacements.items():
+        text = text.replace(i, j)
+    return text

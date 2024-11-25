@@ -12,8 +12,10 @@ class Settings:
     OPEN_AI_KEY: str = os.getenv("OPEN_AI_KEY")
     REDDIT_CLIENT_ID: str = os.getenv("REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET: str = os.getenv("REDDIT_CLIENT_SECRET")
-    DATA_PATH: str = "app/files/redditbias_data"
+    REDDITBIAS_DATA_PATH: str = "app/files/redditbias_data"
+    REDDITBIAS_FILES_PATH: str = "app/files/redditbias_text_files"
 
 
 settings = Settings()
-data_path = Path(settings.DATA_PATH)
+redditbias_data_path = Path(settings.REDDITBIAS_DATA_PATH)
+redditbias_files_path = Path(settings.REDDITBIAS_FILES_PATH)
