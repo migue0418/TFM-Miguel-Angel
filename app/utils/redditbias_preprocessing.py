@@ -1,4 +1,5 @@
 import concurrent.futures
+from typing import Literal
 import numpy as np
 import pandas as pd
 import re
@@ -865,7 +866,9 @@ def reddit_data_phrases_replace_target(topic_ins: Topic, bias_type: str = "bias"
     demo2_df.to_csv(bias_maj_file_path, index=False)
 
 
-def reddit_data_text_train_test(topic_ins: Topic, bias_type: str = "bias"):
+def reddit_data_text_train_test(
+    topic_ins: Topic, group: Literal["min", "max"], bias_type: str = "bias"
+):
     """
     This script generates csv and text files of train and test split for biased reddit dataset
     """
@@ -886,10 +889,13 @@ def reddit_data_text_train_test(topic_ins: Topic, bias_type: str = "bias"):
         output_csv_test = "_processed_phrase_biased_unbias_testset"
         output_csv_train = "_processed_phrase_biased_unbias_trainset"
 
+    topic_group = (
+        topic_ins.minority_group if group == "min" else topic_ins.majority_group
+    )
     bias_file_path = (
         data_path
         / topic_ins.name
-        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{input_file_suffix}.csv"
+        / f"reddit_comments_{topic_ins.name}_{topic_group}{input_file_suffix}.csv"
     )
     df = pd.read_csv(bias_file_path)
     print("df shape {}".format(df.shape))
@@ -899,7 +905,7 @@ def reddit_data_text_train_test(topic_ins: Topic, bias_type: str = "bias"):
         bias_unbias_file_path = (
             data_path
             / topic_ins.name
-            / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{suffix_file}.csv"
+            / f"reddit_comments_{topic_ins.name}_{topic_group}{suffix_file}.csv"
         )
         df_bias_testset = pd.read_csv(bias_unbias_file_path)
         cond = df["comments_processed"].isin(df_bias_testset["comments_processed"])
@@ -930,12 +936,116 @@ def reddit_data_text_train_test(topic_ins: Topic, bias_type: str = "bias"):
     output_csv_test_path = (
         data_path
         / topic_ins.name
-        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{output_csv_test}.csv"
+        / f"reddit_comments_{topic_ins.name}_{topic_group}{output_csv_test}.csv"
     )
     df_test.to_csv(output_csv_test_path, index=False)
     output_csv_train_path = (
         data_path
         / topic_ins.name
-        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{output_csv_train}.csv"
+        / f"reddit_comments_{topic_ins.name}_{topic_group}{output_csv_train}.csv"
     )
     df_train.to_csv(output_csv_train_path, index=False)
+
+
+def reddit_data_valid_test_reduced(topic_ins: Topic):
+    """
+    Create test set and validation set split on the test dataset with removed perplexity outliers
+    """
+    pd.set_option("display.max_columns", 50)
+    input_file_suffix = (
+        "_processed_phrase_biased"  # '_processed_phrase_biased_unbiased'
+    )
+
+    output_csv_valid = (
+        "_biased_valid_reduced"  # '_processed_phrase_biased_unbias_testset'
+    )
+    output_csv_test = (
+        "_biased_test_reduced"  # '_processed_phrase_biased_unbias_trainset'
+    )
+
+    data_file_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{input_file_suffix}.csv"
+    )
+    df1 = pd.read_csv(data_file_path)
+    data_file_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.majority_group}{input_file_suffix}.csv"
+    )
+    df2 = pd.read_csv(data_file_path)
+
+    print("df1 shape {}".format(df1.shape))
+    print("df2 shape {}".format(df2.shape))
+
+    train_test_ratio = 0.5
+
+    df1_valid, df1_test, df2_valid, df2_test = train_test_split(
+        df1, df2, train_size=train_test_ratio, random_state=1
+    )
+
+    print("Train {}".format(df1_valid.shape))
+    print("Test {}".format(df1_test.shape))
+    print(df1_valid["comments_processed"].head())
+    print(df1_test["comments_processed"].head())
+
+    print("Train {}".format(df2_valid.shape))
+    print("Test {}".format(df2_test.shape))
+    print(df2_valid["comments_processed"].head())
+    print(df2_test["comments_processed"].head())
+
+    desti_path = (
+        files_path
+        / topic_ins.name
+        / f"{topic_ins.name}_{topic_ins.minority_group}{output_csv_valid}.txt"
+    )
+    build_dataset_manual_annot(df1_valid, topic_ins.name, desti_path, reduced=True)
+
+    desti_path = (
+        files_path
+        / topic_ins.name
+        / f"{topic_ins.name}_{topic_ins.majority_group}{output_csv_valid}.txt"
+    )
+    build_dataset_manual_annot(df2_valid, topic_ins.name, desti_path, reduced=True)
+
+    desti_path = (
+        files_path
+        / topic_ins.name
+        / f"{topic_ins.name}_{topic_ins.minority_group}{output_csv_test}.txt"
+    )
+    build_dataset_manual_annot(df1_test, topic_ins.name, desti_path, reduced=True)
+
+    desti_path = (
+        files_path
+        / topic_ins.name
+        / f"{topic_ins.name}_{topic_ins.majority_group}{output_csv_test}.txt"
+    )
+    build_dataset_manual_annot(df2_test, topic_ins.name, desti_path, reduced=True)
+
+    output_csv_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{output_csv_valid}.csv"
+    )
+    df1_valid.to_csv(output_csv_path, index=False)
+
+    output_csv_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.majority_group}{output_csv_valid}.csv"
+    )
+    df2_valid.to_csv(output_csv_path, index=False)
+
+    output_csv_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{output_csv_test}.csv"
+    )
+    df1_test.to_csv(output_csv_path, index=False)
+    output_csv_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.majority_group}{output_csv_test}.csv"
+    )
+    df2_test.to_csv(output_csv_path, index=False)

@@ -1,5 +1,6 @@
 import torch
 import math
+import numpy as np
 import re
 
 
@@ -186,7 +187,7 @@ def build_dataset_bos_eos(df, demo, dest_path):
         f.write(data)
 
 
-def build_dataset_manual_annot(df, demo, dest_path):
+def build_dataset_manual_annot(df, demo, dest_path, reduced: bool = False):
     """
     Writes data from Dataframe to a text file, each dataframe row line by line in text file
     Parameters
@@ -204,7 +205,7 @@ def build_dataset_manual_annot(df, demo, dest_path):
 
         for idx, row in df.iterrows():
             comment = row["comments_processed"]
-            if demo == "orientation":
+            if demo == "orientation" and reduced:
                 data += "<bos>" + " " + comment + "\n"
             else:
                 data += comment + "\n"
@@ -216,3 +217,50 @@ def replace_with_caps(text, replacements):
     for i, j in replacements.items():
         text = text.replace(i, j)
     return text
+
+
+def get_model_perplexity(df, m, t):
+    """
+    Finds model perplexity based on average model loss over all sentences
+    Parameters
+    ----------
+    df : pd.DataFrame
+    DataFrame with Reddit comments
+    m : model
+    Pre-trained language model
+    t : tokenizer
+    Pre-trained tokenizer for the given model
+
+    Returns
+    -------
+    Model perplexity
+    """
+    model_perp = model_perplexity(df["comments_processed"], m, t)
+    return model_perp
+
+
+def find_anomalies(data):
+    """
+    Find outliers in a given data distribution
+    Parameters
+    ----------
+    data : list
+    List of sentence perplexities
+
+    Returns
+    -------
+    List of outliers
+    """
+    anomalies = []
+
+    random_data_std = np.std(data)
+    random_data_mean = np.mean(data)
+    anomaly_cut_off = random_data_std * 3
+
+    lower_limit = random_data_mean - anomaly_cut_off
+    upper_limit = random_data_mean + anomaly_cut_off
+    # Generate outliers
+    for outlier in data:
+        if outlier > upper_limit or outlier < lower_limit:
+            anomalies.append(outlier)
+    return anomalies

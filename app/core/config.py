@@ -14,8 +14,10 @@ class Settings:
     REDDIT_CLIENT_SECRET: str = os.getenv("REDDIT_CLIENT_SECRET")
     REDDITBIAS_DATA_PATH: str = "app/files/redditbias_data"
     REDDITBIAS_FILES_PATH: str = "app/files/redditbias_text_files"
+    REDDITBIAS_EXECUTION_LOGS_PATH: str = "app/logs/execution_logs"
 
 
 settings = Settings()
 redditbias_data_path = Path(settings.REDDITBIAS_DATA_PATH)
 redditbias_files_path = Path(settings.REDDITBIAS_FILES_PATH)
+redditbias_execution_logs_path = Path(settings.REDDITBIAS_EXECUTION_LOGS_PATH)
