@@ -1,9 +1,10 @@
-2024-11-27 11:47:10,322 Starting new HTTPS connection (1): huggingface.co:443
-2024-11-27 11:47:10,508 https://huggingface.co:443 "HEAD /microsoft/DialoGPT-small/resolve/main/tokenizer_config.json HTTP/11" 200 0
-2024-11-27 11:47:10,925 https://huggingface.co:443 "HEAD /microsoft/DialoGPT-small/resolve/main/config.json HTTP/11" 200 0
-2024-11-27 11:47:12,592 https://huggingface.co:443 "HEAD /microsoft/DialoGPT-small/resolve/main/generation_config.json HTTP/11" 200 0
-2024-11-27 11:48:11,818 Time to get perplexity scores 1.0256950656572978
-2024-11-27 11:48:11,819 Instances in topic_ins.name 1 and 2: 1014, 1014
-2024-11-27 11:48:11,819 Mean and variance of unfiltered perplexities demo1 - Mean 6644.149062167074, Variance 2923453076.2531996
-2024-11-27 11:48:11,819 Mean and variance of unfiltered perplexities demo2 - Mean 8353.419092471613, Variance 8285960591.740382
-2024-11-27 11:48:11,877 Total time taken 1.0266793767611186
+2024-11-27 12:30:06,740 Getting saved perplexity
+2024-11-27 12:30:13,139 Starting new HTTPS connection (1): huggingface.co:443
+2024-11-27 12:30:13,422 https://huggingface.co:443 "HEAD /microsoft/DialoGPT-small/resolve/main/tokenizer_config.json HTTP/11" 200 0
+2024-11-27 12:30:13,670 https://huggingface.co:443 "HEAD /microsoft/DialoGPT-small/resolve/main/config.json HTTP/11" 200 0
+2024-11-27 12:30:15,470 https://huggingface.co:443 "HEAD /microsoft/DialoGPT-small/resolve/main/generation_config.json HTTP/11" 200 0
+2024-11-27 12:31:23,935 Time to get perplexity scores 1.1802606145540873
+2024-11-27 12:31:23,935 Instances in topic_ins.name 1 and 2: 1014, 1014
+2024-11-27 12:31:23,935 Mean and variance of unfiltered perplexities demo1 - Mean 6644.149062167074, Variance 2923453076.2531996
+2024-11-27 12:31:23,935 Mean and variance of unfiltered perplexities demo2 - Mean 8353.419092471613, Variance 8285960591.740382
+2024-11-27 12:31:24,045 Total time taken 1.182090691725413

@@ -1049,3 +1049,36 @@ def reddit_data_valid_test_reduced(topic_ins: Topic):
         / f"reddit_comments_{topic_ins.name}_{topic_ins.majority_group}{output_csv_test}.csv"
     )
     df2_test.to_csv(output_csv_path, index=False)
+
+
+def reddit_data_text_demo1_demo2(topic_ins: Topic):
+    """
+    This script generates text files of train datasets of Counter target data augmentation
+    """
+    suffix_file = "_processed_phrase_biased_trainset.csv"
+    csv_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{suffix_file}"
+    )
+    df_train_1 = pd.read_csv(csv_path)
+    csv_path = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.majority_group}{suffix_file}"
+    )
+    df_train_2 = pd.read_csv(csv_path)
+
+    df_train_1 = df_train_1[["comments_processed"]]
+    df_train_2 = df_train_2[["comments_processed"]]
+
+    df_train = pd.concat([df_train_1, df_train_2])
+
+    desti_path = (
+        files_path
+        / topic_ins.name
+        / f"{topic_ins.name}_bias_manual_swapped_targets_train.txt"
+    )
+    build_dataset_manual_annot(df_train, desti_path)
+
+    print(df_train.shape)

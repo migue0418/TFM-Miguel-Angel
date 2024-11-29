@@ -92,8 +92,8 @@ def redditbias_measure_bias(
         race_2_perplexity = race_df_2["perplexity"]
 
     logging.debug(
-        "Instances in topic_ins.name 1 and 2: {}, {}".format(
-            len(race_1_perplexity), len(race_2_perplexity)
+        "Instances in {} 1 and 2: {}, {}".format(
+            topic_ins.name, len(race_1_perplexity), len(race_2_perplexity)
         )
     )
     logging.debug(

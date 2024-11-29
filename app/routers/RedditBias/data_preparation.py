@@ -10,6 +10,7 @@ from app.utils.redditbias_preprocessing import (
     reddit_data_phrases,
     reddit_data_phrases_replace_target,
     reddit_data_process,
+    reddit_data_text_demo1_demo2,
     reddit_data_text_train_test,
     reddit_data_valid_test_reduced,
     reddit_reduce_for_annotation,
@@ -219,6 +220,31 @@ def data_valid_test_reduced_from_topic(
 
         # Create a train/test biased reddit dataset
         reddit_data_valid_test_reduced(topic_ins=topic_instance)
+
+        return {"message": "Successfully created the reduced dataset"}
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/reddit-data-text-demo1-demo2/{topic}")
+def data_text_demo1_demo2(
+    topic: Literal["gender", "race", "orientation", "religion1", "religion2"]
+):
+    """
+    Generates text files of train datasets of Counter target data augmentation
+    """
+    try:
+        # Instanciate and validate the topic
+        topic_instance = Topic(name=topic)
+
+        # Creates counter target augmented data
+        reddit_data_text_demo1_demo2(topic_ins=topic_instance)
 
         return {"message": "Successfully created the reduced dataset"}
 
