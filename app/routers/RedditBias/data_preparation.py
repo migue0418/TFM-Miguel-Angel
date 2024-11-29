@@ -8,6 +8,7 @@ from typing import Literal
 from app.utils.redditbias_preprocessing import (
     get_raw_reddit_comments,
     reddit_data_phrases,
+    reddit_data_phrases_replace_attribute,
     reddit_data_phrases_replace_target,
     reddit_data_process,
     reddit_data_text_demo1_demo2,
@@ -247,6 +248,31 @@ def data_text_demo1_demo2(
         reddit_data_text_demo1_demo2(topic_ins=topic_instance)
 
         return {"message": "Successfully created the reduced dataset"}
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/reddit-data-phrases-replace-attribute/{topic}")
+def data_phrases_replace_attribute(
+    topic: Literal["gender", "race", "orientation", "religion1", "religion2"]
+):
+    """
+    Generates Counter attribute dataset for train and test set split
+    """
+    try:
+        # Instanciate and validate the topic
+        topic_instance = Topic(name=topic)
+
+        # Generates counter attribute dataset for train/test
+        reddit_data_phrases_replace_attribute(topic_ins=topic_instance)
+
+        return {"message": "Successfully created the train/test dataset"}
 
     except ValidationError as e:
         raise HTTPException(
