@@ -1084,15 +1084,18 @@ def reddit_data_text_demo1_demo2(topic_ins: Topic):
     print(df_train.shape)
 
 
-def reddit_data_phrases_replace_attribute(topic_ins: Topic):
+def reddit_data_phrases_replace_attribute(topic_ins: Topic, check_trainset: bool):
     """
     This script generates Counter attribute dataset for train and test set split
     """
-    in_file_suffix = (
-        "_processed_phrase_biased_testset"  # '_processed_phrase_biased_trainset'
-    )
+
+    in_file_suffix = "_processed_phrase_biased_testset"
+    if check_trainset:
+        in_file_suffix = "_processed_phrase_biased_trainset"
+
     out_file_suffix = "_processed_phrase_unbiased_testset_pos_attr"
-    # '_processed_phrase_unbiased_trainset_pos_attr'
+    if check_trainset:
+        out_file_suffix = "_processed_phrase_unbiased_trainset_pos_attr"
 
     csv_file = (
         data_path
@@ -1362,3 +1365,69 @@ def reddit_data_phrases_replace_attribute(topic_ins: Topic):
         / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{out_file_suffix}.csv"
     )
     demo2_df.to_csv(csv_file, index=False)
+
+
+def reddit_data_text_bias_unbias(topic_ins: Topic):
+    """
+    This script generates text files of train and test datasets of Counter
+    attribute data augmentation
+    """
+    suffix = "_processed_phrase_biased_trainset"
+    csv_file = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{suffix}.csv"
+    )
+    df_train_1 = pd.read_csv(csv_file)
+
+    suffix = "_processed_phrase_unbiased_trainset_pos_attr"
+    csv_file = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{suffix}.csv"
+    )
+    df_train_2 = pd.read_csv(csv_file)
+
+    df_train_1 = df_train_1[["comments_processed"]]
+    df_train_2 = df_train_2[["comments_processed"]]
+
+    df_train = pd.concat([df_train_1, df_train_2])
+
+    desti_path = (
+        files_path
+        / topic_ins.name
+        / f"{topic_ins.name}_bias_manual_swapped_attr_train.txt"
+    )
+    build_dataset_manual_annot(df_train, None, desti_path)
+
+    print(df_train.shape)
+
+    suffix = "_processed_phrase_biased_testset"
+    csv_file = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{suffix}.csv"
+    )
+    df_test_1 = pd.read_csv(csv_file)
+
+    suffix = "_processed_phrase_unbiased_testset_pos_attr"
+    csv_file = (
+        data_path
+        / topic_ins.name
+        / f"reddit_comments_{topic_ins.name}_{topic_ins.minority_group}{suffix}.csv"
+    )
+    df_test_2 = pd.read_csv(csv_file)
+
+    df_test_1 = df_test_1[["comments_processed"]]
+    df_test_2 = df_test_2[["comments_processed"]]
+
+    df_test = pd.concat([df_test_1, df_test_2])
+
+    print(df_test.shape)
+
+    desti_path = (
+        files_path
+        / topic_ins.name
+        / f"{topic_ins.name}_bias_manual_swapped_attr_test.txt"
+    )
+    build_dataset_manual_annot(df_test, None, desti_path)

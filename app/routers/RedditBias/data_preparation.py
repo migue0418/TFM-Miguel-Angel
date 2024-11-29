@@ -11,6 +11,7 @@ from app.utils.redditbias_preprocessing import (
     reddit_data_phrases_replace_attribute,
     reddit_data_phrases_replace_target,
     reddit_data_process,
+    reddit_data_text_bias_unbias,
     reddit_data_text_demo1_demo2,
     reddit_data_text_train_test,
     reddit_data_valid_test_reduced,
@@ -260,7 +261,8 @@ def data_text_demo1_demo2(
 
 @router.post("/reddit-data-phrases-replace-attribute/{topic}")
 def data_phrases_replace_attribute(
-    topic: Literal["gender", "race", "orientation", "religion1", "religion2"]
+    topic: Literal["gender", "race", "orientation", "religion1", "religion2"],
+    check_trainset: bool = False,
 ):
     """
     Generates Counter attribute dataset for train and test set split
@@ -270,9 +272,36 @@ def data_phrases_replace_attribute(
         topic_instance = Topic(name=topic)
 
         # Generates counter attribute dataset for train/test
-        reddit_data_phrases_replace_attribute(topic_ins=topic_instance)
+        reddit_data_phrases_replace_attribute(
+            topic_ins=topic_instance, check_trainset=check_trainset
+        )
 
         return {"message": "Successfully created the train/test dataset"}
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/reddit-data-text-bias-unbias/{topic}")
+def data_text_bias_unbias(
+    topic: Literal["gender", "race", "orientation", "religion1", "religion2"]
+):
+    """
+    Generates text files of train and test datasets of Counter attribute data augmentation
+    """
+    try:
+        # Instanciate and validate the topic
+        topic_instance = Topic(name=topic)
+
+        # Generates counter attribute dataset data augmentation
+        reddit_data_text_bias_unbias(topic_ins=topic_instance)
+
+        return {"message": "Successfully created the dataset"}
 
     except ValidationError as e:
         raise HTTPException(
