@@ -7,3 +7,4 @@ tox.ini
 app/external_projects
 *_raw_*.csv
 *.log
+app/models/

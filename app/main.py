@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.core.config import settings
-from app.routers import gtp_text, reddit
+from app.routers import gtp_text, reddit, bias_detection
 from app.routers.RedditBias import data_preparation, evaluation
 
 app = FastAPI(
@@ -19,6 +19,7 @@ app.include_router(gtp_text.router)
 app.include_router(reddit.router)
 app.include_router(data_preparation.router)
 app.include_router(evaluation.router)
+app.include_router(bias_detection.router)
 
 
 @app.get("/")

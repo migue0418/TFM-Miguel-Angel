@@ -15,9 +15,12 @@ class Settings:
     REDDITBIAS_DATA_PATH: str = "app/files/redditbias_data"
     REDDITBIAS_FILES_PATH: str = "app/files/redditbias_text_files"
     REDDITBIAS_EXECUTION_LOGS_PATH: str = "app/logs/execution_logs"
+    FILES_PATH: str = "app/files"
+    BIAS_MODEL_PATH = "app/models/bias_classifier"
 
 
 settings = Settings()
 redditbias_data_path = Path(settings.REDDITBIAS_DATA_PATH)
+files_path = Path(settings.FILES_PATH)
 redditbias_files_path = Path(settings.REDDITBIAS_FILES_PATH)
 redditbias_execution_logs_path = Path(settings.REDDITBIAS_EXECUTION_LOGS_PATH)
