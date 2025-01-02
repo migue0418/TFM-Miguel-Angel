@@ -1,31 +1,31 @@
-text,manual_score,reddit_bias_score,edos_score
-Women are not as good at math as men.,1.0,0.31917139887809753,0.9688865542411804
-A man staying home to care for children is wasting his potential.,1.0,0.17990799248218536,0.10704810172319412
-Engineering jobs are too complicated for women.,1.0,0.6394844651222229,0.9923577904701233
-It’s natural for women to prefer care-related jobs.,1.0,0.7426899075508118,0.9912097454071045
-Men should be the sole financial providers for the family.,1.0,0.4344385266304016,0.9150916934013367
-Women always let emotions influence important decisions.,1.0,0.3826511800289154,0.9852860569953918
-A strong leader is always a man.,1.0,0.2960953712463379,0.04689854383468628
-Women are not made for high-stress jobs.,1.0,0.3010156750679016,0.9857628345489502
-It's unprofessional for men to cry in public.,1.0,0.23701302707195282,0.1249699667096138
-Women should not work if they have small children.,1.0,0.3373388648033142,0.9732832908630371
-The ability to lead depends on a person's experience and skills.,0.0,0.4541573226451874,0.011090350337326527
-All employees have the same access to training opportunities.,0.0,0.7190243005752563,0.018041003495454788
-Students should be evaluated based on their academic performance.,0.0,0.5636569857597351,0.011204652488231659
-"Anyone, regardless of gender, can excel in the scientific field.",0.0,0.4186890721321106,0.0121485386043787
-Household responsibilities should be shared equally among family members.,0.0,0.4318956732749939,0.022688645869493484
-Everyone's opinions are valid in a respectful debate.,0.0,0.371604323387146,0.005107912700623274
-Work performance is measured by achieved goals.,0.0,0.4715830385684967,0.01126206386834383
-All human beings deserve fair and respectful treatment.,0.0,0.3979713022708893,0.014182455837726593
-Important family decisions should be made together.,0.0,0.48641160130500793,0.008657533675432205
-Educational programs should promote equality and respect.,0.0,0.3456236720085144,0.009810901246964931
-"In most families, women tend to take care of the household.",0.5,0.7998574376106262,0.606935441493988
-Men are often more competitive in sports than women.,0.5,0.3275739550590515,0.49430471658706665
-It’s common for women to excel in teaching and caregiving roles.,0.5,0.8145233392715454,0.9107487201690674
-Some people think men are usually better at technical tasks.,0.5,0.1908036768436432,0.3459461033344269
-"Culturally, men are expected to be the protectors in a relationship.",0.5,0.28793442249298096,0.6563796401023865
-Women often have a better capacity for empathy than men.,0.5,0.27563896775245667,0.9247480630874634
-It’s typical for men to lead in traditional work environments.,0.5,0.6561679840087891,0.05577538534998894
-Women are often perceived as more organized than men.,0.5,0.309959352016449,0.9010995626449585
-"In many cultures, women are expected to prioritize family over their careers.",0.5,0.468723326921463,0.9217926263809204
-Women have a natural inclination for creative jobs.,0.5,0.5433001518249512,0.9902876615524292
+text,manual_score,reddit_bias_score,edos_score,reddit_bias_error,edos_error
+Women are not as good at math as men.,1.0,0.31917139887809753,0.9688865542411804,0.6808286011219025,0.03111344575881958
+A man staying home to care for children is wasting his potential.,1.0,0.17990799248218536,0.10704810172319412,0.8200920075178146,0.8929518982768059
+Engineering jobs are too complicated for women.,1.0,0.6394844651222229,0.9923577904701233,0.3605155348777771,0.007642209529876709
+It’s natural for women to prefer care-related jobs.,1.0,0.7426899075508118,0.9912097454071045,0.25731009244918823,0.008790254592895508
+Men should be the sole financial providers for the family.,1.0,0.4344385266304016,0.9150916934013367,0.5655614733695984,0.08490830659866333
+Women always let emotions influence important decisions.,1.0,0.3826511800289154,0.9852860569953918,0.6173488199710846,0.014713943004608154
+A strong leader is always a man.,1.0,0.2960953712463379,0.04689854383468628,0.7039046287536621,0.9531014561653137
+Women are not made for high-stress jobs.,1.0,0.3010156750679016,0.9857628345489502,0.6989843249320984,0.014237165451049805
+It's unprofessional for men to cry in public.,1.0,0.23701302707195282,0.1249699667096138,0.7629869729280472,0.8750300332903862
+Women should not work if they have small children.,1.0,0.3373388648033142,0.9732832908630371,0.6626611351966858,0.02671670913696289
+The ability to lead depends on a person's experience and skills.,0.0,0.4541573226451874,0.011090350337326527,0.4541573226451874,0.011090350337326527
+All employees have the same access to training opportunities.,0.0,0.7190243005752563,0.018041003495454788,0.7190243005752563,0.018041003495454788
+Students should be evaluated based on their academic performance.,0.0,0.5636569857597351,0.011204652488231659,0.5636569857597351,0.011204652488231659
+"Anyone, regardless of gender, can excel in the scientific field.",0.0,0.4186890721321106,0.0121485386043787,0.4186890721321106,0.0121485386043787
+Household responsibilities should be shared equally among family members.,0.0,0.4318956732749939,0.022688645869493484,0.4318956732749939,0.022688645869493484
+Everyone's opinions are valid in a respectful debate.,0.0,0.371604323387146,0.005107912700623274,0.371604323387146,0.005107912700623274
+Work performance is measured by achieved goals.,0.0,0.4715830385684967,0.01126206386834383,0.4715830385684967,0.01126206386834383
+All human beings deserve fair and respectful treatment.,0.0,0.3979713022708893,0.014182455837726593,0.3979713022708893,0.014182455837726593
+Important family decisions should be made together.,0.0,0.48641160130500793,0.008657533675432205,0.48641160130500793,0.008657533675432205
+Educational programs should promote equality and respect.,0.0,0.3456236720085144,0.009810901246964931,0.3456236720085144,0.009810901246964931
+"In most families, women tend to take care of the household.",0.5,0.7998574376106262,0.606935441493988,0.2998574376106262,0.10693544149398804
+Men are often more competitive in sports than women.,0.5,0.3275739550590515,0.49430471658706665,0.1724260449409485,0.00569528341293335
+It’s common for women to excel in teaching and caregiving roles.,0.5,0.8145233392715454,0.9107487201690674,0.3145233392715454,0.4107487201690674
+Some people think men are usually better at technical tasks.,0.5,0.1908036768436432,0.3459461033344269,0.3091963231563568,0.15405389666557312
+"Culturally, men are expected to be the protectors in a relationship.",0.5,0.28793442249298096,0.6563796401023865,0.21206557750701904,0.15637964010238647
+Women often have a better capacity for empathy than men.,0.5,0.27563896775245667,0.9247480630874634,0.22436103224754333,0.4247480630874634
+It’s typical for men to lead in traditional work environments.,0.5,0.6561679840087891,0.05577538534998894,0.15616798400878906,0.44422461465001106
+Women are often perceived as more organized than men.,0.5,0.309959352016449,0.9010995626449585,0.19004064798355103,0.4010995626449585
+"In many cultures, women are expected to prioritize family over their careers.",0.5,0.468723326921463,0.9217926263809204,0.03127667307853699,0.4217926263809204
+Women have a natural inclination for creative jobs.,0.5,0.5433001518249512,0.9902876615524292,0.04330015182495117,0.4902876615524292
