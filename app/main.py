@@ -3,6 +3,13 @@ from app.core.config import settings
 from app.routers import gtp_text, reddit, bias_detection, web_crawling
 from app.routers.RedditBias import data_preparation, evaluation
 
+# Registrar modelos en la base de datos
+from app.database.db_sqlalchemy import Base, engine
+from app.database.models import Domain, URL
+
+Base.metadata.create_all(bind=engine)
+
+# Crear la aplicación FastAPI
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="API for the Master's Thesis",

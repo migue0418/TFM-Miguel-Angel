@@ -12,5 +12,6 @@ requests==2.32.3
 praw==7.8.1
 scikit-learn==1.5.2
 scipy==1.14.1
+sqlalchemy==2.0.37
 torch==2.5.1
 transformers==4.46.2

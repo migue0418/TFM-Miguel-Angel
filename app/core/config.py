@@ -17,6 +17,7 @@ class Settings:
     REDDITBIAS_EXECUTION_LOGS_PATH: str = "app/logs/execution_logs"
     FILES_PATH: str = "app/files"
     BIAS_MODEL_PATH = "app/models/bias_classifier"
+    DATABASE_URL: str = os.getenv("DATABASE_URL")
 
 
 settings = Settings()
