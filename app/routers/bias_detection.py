@@ -1,9 +1,17 @@
 import pandas as pd
+from app.enums.datasets_enums import DatasetEnum
+from app.enums.models_enums import ModelsEnum
 from app.schemas.redditbias import Topic
 from app.utils.bias_classification import (
+    generate_consensus_datasets,
+    get_model_path,
     get_pretrained_model_bias_classificator,
     predict_bias,
+    predict_sexism_batch,
     read_phrases_files,
+    reduce_edos_dataset,
+    sexism_evaluator_test_samples,
+    train_model,
 )
 from app.core.config import files_path
 from fastapi import APIRouter, HTTPException
@@ -15,6 +23,204 @@ router = APIRouter(
     prefix="/bias",
     tags=["BIAS Detection"],
 )
+
+
+@router.post("/train-model")
+def train_new_model(
+    dataset: DatasetEnum,
+    model: ModelsEnum,
+):
+    """
+    Train a bias detection model with the specified dataset and model
+    """
+    try:
+        # Train the model
+        train_model(dataset=dataset, model=model)
+
+        return {
+            "message": f"Created the model {model.name} for the dataset {dataset.name}"
+        }
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/predict-sexism")
+def predict_sexism_of_text(
+    text: str,
+    dataset: DatasetEnum = DatasetEnum.EDOS_REDUCED,
+    model: ModelsEnum = ModelsEnum.MODERN_BERT,
+):
+    """
+    Predict the sexism in the consensus datasets with the specified model
+    """
+    try:
+        # Path donde está guardado el modelo
+        model_path = get_model_path(dataset, model)
+
+        # Lo convierte en lista porque el modelo espera una lista de textos
+        texts_to_classify = [text]
+
+        # Clasifica el texto
+        output = predict_sexism_batch(model_path, texts_to_classify)
+
+        # output será una lista de dicts con 'label' y 'score'
+        return zip(texts_to_classify, output)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/tests/consensus/predict-sexism")
+def predict_sexism_with_consensus_csv(
+    dataset: DatasetEnum,
+    model: ModelsEnum,
+    consensus: Literal["all_sexist", "all_not_sexist", "mixed"],
+):
+    """
+    Predict the sexism in the consensus datasets with the specified model
+    """
+    try:
+        # Path donde está guardado el modelo
+        model_path = get_model_path(dataset, model)
+
+        # Obtiene los textos de los datasets de consenso
+        consensus_path = files_path / f"edos_labelled_{consensus}.csv"
+        texts_to_classify = pd.read_csv(consensus_path)["text"].tolist()
+
+        # Clasifica todos los textos de una vez
+        output = predict_sexism_batch(model_path, texts_to_classify)
+
+        # output será una lista de dicts con 'label' y 'score'
+        return zip(texts_to_classify, output)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/training/reduce-dataset")
+def training_reduce_edos_dataset():
+    """
+    Reduce the edos dataset for a quicker training of the model
+    """
+    try:
+        # Reduce the dataset
+        reduce_edos_dataset()
+
+        return {"message": "The dataset has been reduced"}
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/training/test-samples-consensus")
+def training_test_samples_consensus():
+    """
+    Generate the consensus datasets for the test samples
+    """
+    try:
+        # Generate the consensus datasets
+        generate_consensus_datasets()
+
+        return {"message": "The consensus datasets have been generated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/evaluation/test-consensus-sexism-samples")
+def evaluate_consensus_samples(
+    dataset: DatasetEnum,
+    model: ModelsEnum,
+    consensus: Literal["all_sexist", "all_not_sexist", "mixed"],
+):
+    """
+    Evaluate the consensus samples with the specified model
+    """
+    try:
+        # Path donde está guardado el modelo
+        model_path = get_model_path(dataset, model)
+
+        # Obtiene los textos de los datasets de consenso
+        consensus_path = files_path / f"edos_labelled_{consensus}.csv"
+
+        # Obtiene la ruta donde se guardará la evaluación
+        eval_path = (
+            "app/models/evaluations/"
+            + dataset.model_folder_path
+            + "/"
+            + consensus
+            + ".log"
+        )
+        sexism_evaluator_test_samples(
+            eval_path=eval_path, model_path=model_path, csv_path=consensus_path
+        )
+
+        return {"message": "The consensus datasets have been generated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/tmp/consensus-mixed-fix")
+def tmp_consensus_mixed_fix(
+    dataset: DatasetEnum,
+    model: ModelsEnum,
+    consensus: Literal["all_sexist", "all_not_sexist", "mixed"],
+):
+    """
+    Arregla el archivo de consenso mixed cogiendo el valor label del archivo
+    app/files/edos_labelled_aggregated.csv
+    """
+    try:
+        # Obtiene el archivo de consenso mixed
+        mixed_consensus_path = files_path / f"edos_labelled_{consensus}.csv"
+
+        # Carga el dataframe
+        mixed_consensus_df = pd.read_csv(mixed_consensus_path)
+
+        # Obtiene el archivo de consenso agregado
+        aggregated_consensus_path = files_path / "edos_labelled_aggregated.csv"
+
+        # Carga el dataframe
+        aggregated_consensus_df = pd.read_csv(aggregated_consensus_path)
+
+        # Reemplaza la columna label_sexist del dataframe de consensus por la
+        # del aggregated haciendo join por rewire_id
+        mixed_consensus_df = mixed_consensus_df.merge(
+            aggregated_consensus_df[["rewire_id", "label_sexist"]],
+            on="rewire_id",
+            how="left",
+        )
+
+        # Renombra la columna label_sexist_x a label_sexist y elimina label_sexist_y
+        mixed_consensus_df = mixed_consensus_df.rename(
+            columns={"label_sexist_x": "label_sexist"}
+        )
+        mixed_consensus_df = mixed_consensus_df.drop(columns=["label_sexist_y"])
+
+        # Guarda el archivo
+        mixed_consensus_df.to_csv(mixed_consensus_path, index=False)
+
+        return {"message": "The consensus datasets have been generated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/detection/train-model/{topic}")
