@@ -24,6 +24,11 @@ class DatasetEnum(str, Enum):
         ),
         "reddit_bias",
     )
+    EDOS_4_SEXISM = (
+        "EDOS_4_SEXISM",
+        files_path / "edos_labelled_4_sexism_grade.csv",
+        "edos_4_sexism",
+    )
 
     def __new__(cls, enum_name: str, csv_path: Path, model_folder_path: str):
         obj = str.__new__(cls, enum_name)
