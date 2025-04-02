@@ -294,10 +294,10 @@ def bias_prediction_detect_files_bias():
 
         # Iterate the phrases and get the bias probability of each one with each model
         for phrase in phrases_dict:
-            # Get the gender model probability
+            # Get the reddit bias model probability
             prob = predict_bias(topic_ins=topic_instance, text=phrase["text"])
             phrase["reddit_bias_score"] = prob
-            # Get the gender model probability
+            # Get the edos model probability
             prob = predict_bias(
                 topic_ins=topic_instance, edos=True, text=phrase["text"]
             )

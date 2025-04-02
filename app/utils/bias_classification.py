@@ -66,7 +66,7 @@ def eval_model(model, data_loader, loss_fn, device):
 
 
 def train_bias_classificator(topic: Topic = None, edos: bool = False):
-    # Load the dataset
+    # Cargamos el dataset
     if edos:
         folder_path = "edos"
         processed_file_path = files_path / "edos_labelled_aggregated.csv"
@@ -83,14 +83,14 @@ def train_bias_classificator(topic: Topic = None, edos: bool = False):
         data = data[["text", "label_sexist"]].rename(
             columns={"text": "comment", "label_sexist": "bias_sent"}
         )
-        # Convertir los valores de bias_sent: 'sexist' -> 1, 'not sexist' -> 0
+        # Convertir los valores de bias_sent a 1/0
         data["bias_sent"] = data["bias_sent"].map({"sexist": 1, "not sexist": 0})
 
-    # Use the columns `comment` as text and `bias_sent` as label
+    # Obtenemos los comentarios y etiquetas
     comments = data["comment"].values
     labels = data["bias_sent"].values
 
-    # Create a train / test split
+    # Partimos en train/val (80/20)
     train_texts, val_texts, train_labels, val_labels = train_test_split(
         comments, labels, test_size=0.2, random_state=42
     )
@@ -104,7 +104,7 @@ def train_bias_classificator(topic: Topic = None, edos: bool = False):
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=16)
 
-    # Get the model with a binary output
+    # Cargar el modelo
     model = BertForSequenceClassification.from_pretrained(
         "bert-base-uncased", num_labels=1
     )
@@ -113,11 +113,11 @@ def train_bias_classificator(topic: Topic = None, edos: bool = False):
     model.to(device)
     model_path = settings.BIAS_MODEL_PATH + "/" + folder_path
 
-    # Training
+    # Entrenar el modelo
     optimizer = AdamW(model.parameters(), lr=1e-5)
     loss_fn = BCEWithLogitsLoss()
 
-    # Train for 3 epochs
+    # Usamos 3 epochs
     epochs = 3
     for epoch in range(epochs):
         train_loss = train_epoch(model, train_loader, loss_fn, optimizer, device)
@@ -126,7 +126,7 @@ def train_bias_classificator(topic: Topic = None, edos: bool = False):
         print(f"Epoch {epoch + 1}/{epochs}")
         print(f"Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
 
-    # Save the model
+    # Guardamos el modelo
     model.save_pretrained(model_path)
     tokenizer.save_pretrained(model_path)
 
@@ -186,13 +186,11 @@ def train_model(dataset: DatasetEnum, model_name: ModelsEnum):
         dataset_full = dataset_full.train_test_split(test_size=0.2, seed=42)
         dataset_train = dataset_full["train"]
         dataset_dev = dataset_full["test"]
-        # No hay test separado en este caso. Podrías dividir dev en dev/test si quieres.
-        dataset_test = None  # lo dejamos None para dejar claro
 
-    # Convertir la columna "label" a un tipo ClassLabel (string -> int) de forma automática
-    #    1) Extraemos los valores únicos: "sexist", "not sexist"
-    #    2) Usamos class_encode_column para que HF cree un mapeo interno
-    #       (en orden alfabético: "not sexist"->0, "sexist"->1, o similar).
+        # No hay test separado en este caso.
+        dataset_test = None
+
+    # Convertir la columna "label" a un tipo ClassLabel (string -> int)
     dataset_train = dataset_train.class_encode_column("label")
     dataset_dev = dataset_dev.class_encode_column("label")
     if dataset_test is not None:
@@ -202,12 +200,11 @@ def train_model(dataset: DatasetEnum, model_name: ModelsEnum):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
 
-    # Configurar 'label2id' e 'id2label' en el modelo para
-    #  que devuelva directamente las etiquetas de texto
+    # Configurar 'label2id' e 'id2label' en el modelo para que devuelva
+    #  directamente las etiquetas de texto
     label_names = dataset_train.features["label"].names
     label2id = {name: i for i, name in enumerate(label_names)}
     id2label = {i: name for i, name in enumerate(label_names)}
-
     model.config.label2id = label2id
     model.config.id2label = id2label
 
@@ -229,7 +226,7 @@ def train_model(dataset: DatasetEnum, model_name: ModelsEnum):
     if dataset_test is not None:
         dataset_test = dataset_test.remove_columns(["comment"])
 
-    # Cargamos varias métricas (accuracy, precision, recall, f1)
+    # Cargamos las métricas
     accuracy_metric = evaluate.load("accuracy")
     precision_metric = evaluate.load("precision")
     recall_metric = evaluate.load("recall")
@@ -308,13 +305,14 @@ def get_pretrained_model_bias_classificator(
 
     if os.path.exists(model_path) and not force_training:
         print("Modelo encontrado. Cargando...")
-        model = BertForSequenceClassification.from_pretrained(model_path)
-        tokenizer = BertTokenizer.from_pretrained(model_path)
     else:
+        # Si no existe el modelo o si forzamos reentrenamiento
         print("Entrenando un nuevo modelo...")
         train_bias_classificator(topic_ins, edos)
-        model = BertForSequenceClassification.from_pretrained(model_path)
-        tokenizer = BertTokenizer.from_pretrained(model_path)
+
+    # Cargamos el modelo
+    model = BertForSequenceClassification.from_pretrained(model_path)
+    tokenizer = BertTokenizer.from_pretrained(model_path)
 
     model.to(device)
     model.eval()
@@ -325,6 +323,7 @@ def predict_bias(
     topic_ins: Topic, text: str, force_training: bool = False, edos: bool = False
 ):
     """Realiza una predicción de sesgo dado un texto."""
+    # Cargar el modelo y el tokenizador
     device, model, tokenizer = get_pretrained_model_bias_classificator(
         topic_ins, force_training, edos=edos
     )
@@ -336,6 +335,7 @@ def predict_bias(
     attention_mask = encoding["attention_mask"].to(device)
 
     with torch.no_grad():
+        # Realizar la predicción
         logits = model(input_ids, attention_mask=attention_mask).logits.squeeze(-1)
         prob = torch.sigmoid(logits).item()
 
@@ -343,7 +343,7 @@ def predict_bias(
 
 
 def read_phrases_files():
-    """Read the phrases files with the polarities"""
+    """Read the phrases files with the polarities and redurn a list of dictionaries"""
     files = {
         "high_bias": "high_bias.txt",
         "neutral": "neutral.txt",
@@ -410,15 +410,8 @@ def generate_consensus_datasets():
         else:
             return "mixed"
 
+    # Aplicar la función de clasificación a cada fila
     grouped["consensus"] = grouped["annot_labels"].apply(classify_labels)
-
-    # Ahora grouped tiene columnas:
-    #  - rewire_id
-    #  - annot_labels (lista de 3 strings)
-    #  - consensus ("all_sexist", "all_not_sexist" o "mixed")
-
-    # Paso 4: Vincular esa clasificación a df_test
-    #         para obtener 3 DataFrames con TODAS las filas de cada rewire_id.
 
     # Carga el dataset de aggregated y obtiene la etiqueta de ahí uniéndolo con grouped
     df_aggregated = pd.read_csv(files_path / "edos_labelled_aggregated.csv")
@@ -443,7 +436,7 @@ def generate_consensus_datasets():
     )
     df_test_mixed = df_test_mixed.groupby("rewire_id").first().reset_index()
 
-    # Si quieres, revisa cuántos rewire_id hay en cada categoría
+    # Vemos los IDs únicos de cada dataframe
     print("All sexist:", df_test_all_sexist["rewire_id"].nunique())
     print("All not sexist:", df_test_all_not_sexist["rewire_id"].nunique())
     print("Mixed:", df_test_mixed["rewire_id"].nunique())
@@ -482,23 +475,16 @@ def predict_sexism_batch(model_path: str, texts: list[str]) -> list[dict[str, fl
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForSequenceClassification.from_pretrained(model_path)
 
-    # 2. Crear el pipeline de clasificación
+    # Crear el pipeline de clasificación
     classifier = pipeline(
         "text-classification",
         model=model,
         tokenizer=tokenizer,
     )
 
-    # 3. Clasificar la lista de textos
-    #    Si 'texts' es muy grande, el pipeline se encargará de procesarlo por lotes (batching).
+    # Clasificar la lista de textos (si texts es muy grande, hace batching automáticamente)
     results = classifier(texts)
 
-    # 'results' será una lista de dicts, p.ej.
-    # [
-    #   {"label": "sexist", "score": 0.95},
-    #   {"label": "not sexist", "score": 0.88},
-    #   ...
-    # ]
     return results
 
 
@@ -513,7 +499,7 @@ def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
             example["text"], padding="max_length", truncation=True, max_length=128
         )
 
-    # Métricas (ejemplo: accuracy, precision, recall, f1)
+    # Cargar las métricas
     accuracy = evaluate.load("accuracy")
     precision = evaluate.load("precision")
     recall = evaluate.load("recall")
@@ -533,10 +519,10 @@ def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
             "f1": f1.compute(predictions=preds, references=labels)["f1"],
         }
 
-    # Creamos args "fake" para poder inicializar el Trainer
+    # Iniciar el Trainer
     eval_args = TrainingArguments(
-        output_dir="eval_output",  # carpeta para logs (puede ser cualquiera)
-        per_device_eval_batch_size=16,  # ajusta si tu GPU es pequeña
+        output_dir="eval_output",
+        per_device_eval_batch_size=16,
         do_eval=True,
     )
 
@@ -548,9 +534,6 @@ def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
     )
     print(f"\nEvaluando en {csv_path}...")
     df_test = pd.read_csv(csv_path)
-
-    # Si tu etiqueta es "sexist"/"not sexist" en texto, usa class_encode_column,
-    # o mapea manualmente a [0,1]. Ejemplo rápido:
 
     # Renombra la columna label_sexist por label
     if "label_sexist" in df_test.columns:
@@ -569,13 +552,11 @@ def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
     # Removemos columnas que sobran (por ejemplo, "text")
     dataset_test = dataset_test.remove_columns(["text"])
 
-    # # Si se necesita, dataset_test.set_format("torch")  # Trainer normalmente lo hace solo.
-
     # Llamamos a evaluate
     metrics = trainer.evaluate(dataset_test)
 
     # Guarda en models/evaluations los resultados según el modelo (eval_path)
-    # y el csv, lo añade, no borra
+    #  y el csv, lo añade, no borra
     with open(eval_path, "a") as f:
         f.write(f"Resultados en {csv_path}: {metrics}\n")
 

@@ -5,10 +5,10 @@ def clean_text_from_edos(text: str) -> str:
     """
     Limpia el texto (limpieza suave) de elementos innecesarios:
       1. Elimina tokens [URL] y [USER].
-      2. (Opcional) Elimina o transforma hashtags.
-      3. Limpia comillas duplicadas.
-      4. Elimina espacios de más.
-      5. (Opcional) Normaliza caracteres especiales o emojis.
+      2. Emojis y caracteres no estándar.
+      3. Normaliza mayúsculas/minúsculas.
+      4. Limpia comillas duplicadas.
+      5. Elimina espacios de más.
     """
     # Eliminar [URL] y [USER]
     text = re.sub(r"\[URL\]", "", text)
