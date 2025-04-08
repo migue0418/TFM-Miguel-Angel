@@ -18,6 +18,7 @@ class Settings:
     FILES_PATH: str = "app/files"
     BIAS_MODEL_PATH = "app/models/bias_classifier"
     DATABASE_URL: str = os.getenv("DATABASE_URL")
+    HUGGINGFACE_TOKEN: str = os.getenv("HUGGINGFACE_TOKEN")
 
 
 settings = Settings()
