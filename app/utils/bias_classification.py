@@ -365,15 +365,15 @@ def read_phrases_files():
 def reduce_edos_dataset():
     # Load the dataset
     processed_file_path = files_path / "edos_labelled_aggregated.csv"
-    output_path = files_path / "edos_labelled_reduced.csv"
+    output_path = files_path / "edos_labelled_reduced_10k.csv"
 
     # Read it with pandas
     data = pd.read_csv(processed_file_path)
 
     # Get only 5k samples of the dataset with balanced sexists and non-sexists (2.5k for each)
-    data_sexist = data[data["label_sexist"] == "sexist"].sample(n=2500, random_state=42)
+    data_sexist = data[data["label_sexist"] == "sexist"].sample(n=4854, random_state=42)
     data_not_sexist = data[data["label_sexist"] == "not sexist"].sample(
-        n=2500, random_state=42
+        n=4854, random_state=42
     )
 
     # Concatenate the two dataframes
@@ -381,6 +381,8 @@ def reduce_edos_dataset():
 
     # Save the reduced dataset
     data_reduced.to_csv(output_path, index=False)
+
+    return data_reduced
 
 
 def generate_consensus_datasets():
@@ -539,6 +541,10 @@ def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
     if "label_sexist" in df_test.columns:
         df_test = df_test.rename(columns={"label_sexist": "label"})
 
+    if "split" in df_test.columns:
+        # Si hay columna split, nos quedamos solo con el test
+        df_test = df_test[df_test["split"] == "test"]
+
     if df_test["label"].dtype == object:  # son strings
         # Ej: mapeo "sexist"->1, "not sexist"->0
         df_test["label"] = df_test["label"].map({"not sexist": 0, "sexist": 1})
@@ -554,11 +560,15 @@ def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
 
     # Llamamos a evaluate
     metrics = trainer.evaluate(dataset_test)
+    print(f"Resultados en {csv_path}: {metrics}")
+
+    # Si no existe la carpeta, se crea
+    if not os.path.exists(os.path.dirname(eval_path)):
+        os.makedirs(os.path.dirname(eval_path))
 
     # Guarda en models/evaluations los resultados según el modelo (eval_path)
     #  y el csv, lo añade, no borra
     with open(eval_path, "a") as f:
         f.write(f"Resultados en {csv_path}: {metrics}\n")
 
-    print(f"Resultados en {csv_path}: {metrics}")
     return metrics

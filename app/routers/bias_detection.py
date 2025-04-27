@@ -14,7 +14,7 @@ from app.utils.bias_classification import (
     train_model,
 )
 from app.core.config import files_path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import ValidationError
 from typing import Literal
 
@@ -131,6 +131,84 @@ def training_reduce_edos_dataset():
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@router.post("/training/edos-reduced-and-redditbias-dataset")
+def training_reduce_edos_and_reddit_bias_dataset():
+    """
+    Reduce the edos dataset for a quicker training of the model
+    """
+    try:
+        # Get edos reduced dataset (10k samples)
+        df_edos = pd.read_csv(DatasetEnum.EDOS_REDUCED_FULL.csv_path)
+        # Filtramos las columnas necesarias
+        df_edos = df_edos[["rewire_id", "text", "label_sexist", "split"]]
+
+        # Get reddit bias dataset
+        df_reddit_bias = pd.read_csv(DatasetEnum.REDDIT_BIAS.csv_path)
+
+        # Cambiamos el nombre a las columnas de redditbias para que sean iguales a las de edos
+        df_reddit_bias = df_reddit_bias.rename(
+            columns={"comment": "text", "bias_sent": "label_sexist"}
+        )
+
+        # Cambiamos en label_sexist 0 por not_sexist y 1 por sexist
+        df_reddit_bias["label_sexist"] = df_reddit_bias["label_sexist"].replace(
+            {0: "not_sexist", 1: "sexist"}
+        )
+
+        # Filtramos las columnas necesarias
+        df_reddit_bias = df_reddit_bias[["text", "label_sexist"]]
+
+        # Filtramos el dataset para eliminar las label que no son sexist o not_sexist
+        df_reddit_bias = df_reddit_bias[
+            df_reddit_bias["label_sexist"].isin(["sexist", "not_sexist"])
+        ]
+        # Obtenemos el número de ejemplos por cada label_sexist
+        counts = df_reddit_bias["label_sexist"].value_counts()
+        # Obtener el número mínimo de ejemplos entre las dos clases
+        min_count = counts.min()
+
+        # Muestreamos el dataset de reddit bias para que tenga el mismo número de sexist y not_sexist
+        df_reddit_bias = (
+            df_reddit_bias.groupby("label_sexist")
+            .apply(lambda x: x.sample(min(len(x), min_count), random_state=42))
+            .reset_index(drop=True)
+        )
+
+        # Dividimos el dataset de reddit bias en 3 partes, train, dev y test quedándonos con un 70% train, 10% dev y 20% test
+        # Además cada split debe tener el mismo número de sexist y not_sexist
+        df_reddit_bias["split"] = "train"
+        df_reddit_bias.loc[df_reddit_bias.sample(frac=0.1).index, "split"] = "dev"
+        df_reddit_bias.loc[df_reddit_bias.sample(frac=0.2).index, "split"] = "test"
+
+        print(df_reddit_bias["split"].value_counts())
+        print(df_reddit_bias.groupby("split")["label_sexist"].value_counts())
+
+        # Añadimos el indice de rewire_id al dataset de reddit bias
+        df_reddit_bias["rewire_id"] = df_reddit_bias.index.to_series().apply(
+            lambda i: f"sexism_reddit_bias-{i}"
+        )
+
+        # Concatenate the two dataframes
+        data_concat = pd.concat([df_edos, df_reddit_bias])
+
+        # Hacemos un shuffle para mezclar los datos
+        data_concat = data_concat.sample(frac=1).reset_index(drop=True)
+
+        # Save the reduced dataset
+        output_path = files_path / "edos_reduced_reddit_bias.csv"
+        data_concat.to_csv(output_path, index=False)
+
+        return {"message": "The dataset has been reduced"}
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 @router.post("/training/test-samples-consensus")
 def training_test_samples_consensus():
     """
@@ -174,6 +252,32 @@ def evaluate_consensus_samples(
         )
 
         return {"message": "The consensus datasets have been generated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/evaluation/metrics-test")
+def evaluate_metrics_in_test(dataset: DatasetEnum, model: ModelsEnum):
+    """
+    Evaluate the consensus samples with the specified model
+    """
+    try:
+        # Path donde está guardado el modelo
+        model_path = get_model_path(dataset, model)
+
+        # Obtiene la ruta donde se guardará la evaluación
+        eval_path = (
+            "app/models/evaluations/"
+            + dataset.model_folder_path
+            + "/"
+            + model.name
+            + ".log"
+        )
+        sexism_evaluator_test_samples(
+            eval_path=eval_path, model_path=model_path, csv_path=dataset.csv_path
+        )
+
+        return {"message": "The model evaluations have been generated"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
@@ -431,5 +535,83 @@ def bias_prediction_detect_text_bias(text: str, text_score: float = None):
 
         return results
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/tmp/clean-results-and-merge")
+def clean_results_and_merge(
+    bert_base_csv: UploadFile = File(...),
+    moder_bert_csv: UploadFile = File(...),
+):
+    """
+    Limpia y recoge los resultados de los csvs de los modelos y los junta en uno solo
+    """
+    try:
+        # Creamos dataset de bert_base
+        bert_base_df = pd.read_csv(bert_base_csv.file)
+
+        # Creamos dataset de modern_bert
+        modern_bert_df = pd.read_csv(moder_bert_csv.file)
+
+        # Limpiamos los resultados de los csvs
+        # Primero nos quedamos solo con los que pertenezcan al bert_base_uncased
+        bert_base_df = bert_base_df[bert_base_df["model_name"] == "bert-base-uncased"]
+
+        # Hacemos lo mismo con modern_bert
+        modern_bert_df = modern_bert_df[
+            modern_bert_df["model_name"] == "answerdotai/ModernBERT-base"
+        ]
+
+        # Obtenemos un ranking de los 5 mejores resultados de cada modelo
+        bert_base_top_5 = bert_base_df.nlargest(5, "eval_f1").sort_values(
+            by="eval_f1", ascending=False
+        )
+        modern_bert_top_5 = modern_bert_df.nlargest(5, "eval_f1").sort_values(
+            by="eval_f1", ascending=False
+        )
+
+        # Devolvemos un diccionario con los 5 mejores de bert_base y los 5 mejores de modern_bert
+        top_5 = {
+            "bert_base": bert_base_top_5.to_dict(orient="records"),
+            "modern_bert": modern_bert_top_5.to_dict(orient="records"),
+        }
+
+        return top_5
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/tmp/statistics_dataset")
+def get_dataset_stats(
+    dataset: DatasetEnum = DatasetEnum.EDOS_REDUCED_FULL,
+):
+    """
+    Limpia y recoge los resultados de los csvs de los modelos y los junta en uno solo
+    """
+    try:
+        # Creamos dataset con los datos
+        df = pd.read_csv(dataset.csv_path)
+
+        # Obtenemos el count de cada split
+        split_counts = df["split"].value_counts().to_dict()
+        print(split_counts)
+
+        # Obtenemos el porcentaje de cada split
+        split_percentages = (df["split"].value_counts(normalize=True) * 100).to_dict()
+        print(split_percentages)
+
+        # Obtenemos el count de cada label_sexist
+        label_counts = df["label_sexist"].value_counts().to_dict()
+        print(label_counts)
+
+        # Obtenemos el count de cada label_sexist por split
+        label_split_counts = (
+            df.groupby(["split", "label_sexist"]).size().unstack(fill_value=0).to_dict()
+        )
+        print(label_split_counts)
+
+        return "Done"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
