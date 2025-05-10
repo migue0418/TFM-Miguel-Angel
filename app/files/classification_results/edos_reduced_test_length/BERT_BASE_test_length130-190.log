@@ -1,0 +1,1 @@
+Resultados en app\files\edos_reduced_test_length.csv: {'eval_loss': 0.6457899212837219, 'eval_model_preparation_time': 0.0162, 'eval_accuracy': 0.8305785123966942, 'eval_precision': 0.85, 'eval_recall': 0.8371212121212122, 'eval_f1': 0.8435114503816794, 'eval_runtime': 27.9148, 'eval_samples_per_second': 17.338, 'eval_steps_per_second': 1.111}

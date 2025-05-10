@@ -490,7 +490,9 @@ def predict_sexism_batch(model_path: str, texts: list[str]) -> list[dict[str, fl
     return results
 
 
-def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
+def sexism_evaluator_test_samples(
+    eval_path, model_path, csv_path, interval_filter=None
+):
     # Cargar el tokenizer y el modelo entrenado
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForSequenceClassification.from_pretrained(model_path)
@@ -544,6 +546,10 @@ def sexism_evaluator_test_samples(eval_path, model_path, csv_path):
     if "split" in df_test.columns:
         # Si hay columna split, nos quedamos solo con el test
         df_test = df_test[df_test["split"] == "test"]
+
+    if interval_filter:
+        # Filtra el dataset para que solo contenga los comentarios el intervalo específico
+        df_test = df_test[df_test["length_interval"] == interval_filter]
 
     if df_test["label"].dtype == object:  # son strings
         # Ej: mapeo "sexist"->1, "not sexist"->0

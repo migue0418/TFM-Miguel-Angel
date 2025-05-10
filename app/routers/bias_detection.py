@@ -209,6 +209,63 @@ def training_reduce_edos_and_reddit_bias_dataset():
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@router.post("/training/test-length-reduced-edos-dataset")
+def training_test_length_reduce_edos_dataset():
+    """
+    Reduce the edos dataset for a quicker training of the model
+    """
+    try:
+        import numpy as np
+
+        df = pd.read_csv(DatasetEnum.EDOS_REDUCED_FULL.csv_path)
+
+        output_path = files_path / "edos_reduced_test_length.csv"
+
+        # 1. Filtrar solo el split "test"
+        df_test = df[df["split"] == "test"].copy()
+
+        # 2. Calcular la longitud de cada texto
+        df_test["length"] = df_test["text"].str.len()
+
+        # 3. Obtener mínimo y máximo
+        min_len = df_test["length"].min()
+        max_len = df_test["length"].max()
+
+        # 4. Crear 4 intervalos equiespaciados entre min_len y max_len
+        #    Necesitamos 5 puntos para 4 bins
+        bins = np.linspace(min_len, max_len, num=5)
+
+        # 5. Definir etiquetas para cada intervalo
+        labels = [f"{int(bins[i])}-{int(bins[i + 1])}" for i in range(len(bins) - 1)]
+
+        # 6. Asignar cada texto a un intervalo
+        df_test["length_interval"] = pd.cut(
+            df_test["length"],
+            bins=bins,
+            labels=labels,
+            include_lowest=True,
+            right=False,
+        )
+
+        # 7. Revisar distribución por intervalo
+        print(df_test["length_interval"].value_counts().sort_index())
+
+        # (Opcional) si quieres ver el DataFrame resultante:
+        print(df_test[["text", "length", "length_interval"]].head())
+
+        df_test.to_csv(output_path, index=False)
+
+        return {"message": "The dataset has been reduced"}
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 @router.post("/training/test-samples-consensus")
 def training_test_samples_consensus():
     """
@@ -219,6 +276,49 @@ def training_test_samples_consensus():
         generate_consensus_datasets()
 
         return {"message": "The consensus datasets have been generated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/evaluation/test-samples-edos-reduced-length")
+def evaluation_test_samples_edos_reduced_length(
+    dataset: DatasetEnum = DatasetEnum.EDOS_REDUCED_FULL,
+    model: ModelsEnum = ModelsEnum.MODERN_BERT,
+):
+    """
+    Evaluate the test samples with the specified model
+    """
+    try:
+        # Path donde está guardado el modelo
+        model_path = get_model_path(dataset=dataset, model_name=model)
+
+        # Leemos el dataset de test divido en intervalos de longitud
+        dataset_csv = files_path / "edos_reduced_test_length.csv"
+        df_test = pd.read_csv(dataset_csv)
+
+        # Obtenemos los intervalos de longitud
+        length_intervals = df_test["length_interval"].unique()
+        for interval in length_intervals:
+            # Obtiene la ruta donde se guardará la evaluación
+            eval_path = (
+                "app/files/edos_reduced_test_length"
+                + "/"
+                + model.name
+                + "_test_length"
+                + str(interval)
+                + ".log"
+            )
+
+            metrics = sexism_evaluator_test_samples(
+                eval_path=eval_path,
+                model_path=model_path,
+                csv_path=dataset_csv,
+                interval_filter=str(interval),
+            )
+
+            print(f"Interval: {interval}, Metrics: {metrics}")
+
+        return {"message": "The test samples have been evaluated"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
