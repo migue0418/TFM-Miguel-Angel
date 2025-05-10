@@ -1,11 +1,14 @@
 import evaluate
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 import pandas as pd
 import os
+import torch
 from app.core.config import settings
 from fastapi import APIRouter, HTTPException
 from pydantic import ValidationError
 from app.enums.datasets_enums import DatasetEnum
 from app.enums.models_enums import ModelsEnum, ModelsGenerativeEnum
+from app.utils.bias_classification import get_model_path
 from app.utils.sexism_classification import (
     generate_4_sexism_labels_dataset,
     predict_sexism_generative_model,
@@ -244,6 +247,134 @@ def evaluate_generation_ai_model(dataset: DatasetEnum, model: ModelsGenerativeEn
             "message": f"Results with {model.name} for the dataset {dataset.name}",
             "results": results,
         }
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/evaluation/classification-models")
+def evaluate_classification_model(dataset: DatasetEnum, model: ModelsEnum):
+    """
+    Make predictions with a classification model for sexism detection.
+    """
+    try:
+        # Obtener ruta de los resultados
+        result_path = os.path.join(
+            settings.FILES_PATH,
+            "reddit_bias_edos_prediction",
+            model.value.split("/")[-1],
+        )
+        predictions_file = os.path.join(
+            result_path, f"predictions_{model.value.split('/')[-1]}.csv"
+        )
+
+        # Si no existe la carpeta, se crea
+        if not os.path.exists(os.path.dirname(predictions_file)):
+            os.makedirs(os.path.dirname(predictions_file))
+
+        # Cargar el dataset
+        df = pd.read_csv(dataset.csv_path)
+
+        if dataset.name == "REDDIT_BIAS":
+            # Cambiamos el nombre a las columnas de redditbias para que sean iguales a las de edos
+            df = df.rename(
+                columns={"comment": "text", "bias_sent": "label_reddit_bias"}
+            )
+
+        # Obtenemos el modelo entrenado con el dataset de edos
+        dataset_edos = DatasetEnum.EDOS_REDUCED_FULL
+        model_path = get_model_path(dataset_edos, model)
+
+        # Creamos el pipeline de clasificación
+        device = 0 if torch.cuda.is_available() else -1
+        clf = pipeline(
+            "text-classification",
+            model=AutoModelForSequenceClassification.from_pretrained(model_path),
+            tokenizer=AutoTokenizer.from_pretrained(model_path),
+            device=device,
+            return_all_scores=True,
+            truncation=True,
+            max_length=128,
+        )
+
+        # Inferencia en lotes
+        texts = df["text"].tolist()
+        batch_size = 32
+        preds, score_not, score_sex = [], [], []
+
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            outputs = clf(batch)  # lista de listas (dos dicts por ejemplo)
+
+            for out in outputs:
+                # se asume orden   0 → not sexist, 1 → sexist
+                not_s, sex_s = out[0]["score"], out[1]["score"]
+                score_not.append(not_s)
+                score_sex.append(sex_s)
+                preds.append("sexist" if sex_s >= not_s else "not sexist")
+
+        # Añadimos los resultados al dataframe
+        df["predict_edos"] = preds
+        df["score_not"] = score_not
+        df["score_sexist"] = score_sex
+
+        # Guardar los resultados en el archivo CSV
+        cols_out = [
+            "text",
+            "label_reddit_bias",
+            "predict_edos",
+            "score_not",
+            "score_sexist",
+        ]
+        df[cols_out].to_csv(predictions_file, index=False)
+
+        return {
+            "message": f"Results with {model.name} for the dataset {dataset.name}",
+            "results": preds,
+        }
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/evaluation/classification-models-classes")
+def evaluate_classification_model_classes(dataset: DatasetEnum, model: ModelsEnum):
+    """
+    Make predictions with a classification model for sexism detection.
+    """
+    try:
+        # Obtener ruta de los resultados
+        result_path = os.path.join(
+            settings.FILES_PATH,
+            "reddit_bias_edos_prediction",
+            model.value.split("/")[-1],
+        )
+        predictions_file = os.path.join(
+            result_path, f"predictions_{model.value.split('/')[-1]}.csv"
+        )
+
+        # Cargar el dataset
+        df = pd.read_csv(predictions_file)
+
+        # Agrupamos por label_sexist y predict para ver cuántos hay de cada uno
+        df_grouped = (
+            df.groupby(["label_reddit_bias", "predict_edos"])
+            .size()
+            .reset_index(name="count")
+        )
+
+        # Obtenemos
+        print(df_grouped)
 
     except ValidationError as e:
         raise HTTPException(
