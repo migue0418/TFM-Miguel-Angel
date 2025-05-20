@@ -185,6 +185,78 @@ def predict_generative_ai(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@router.post("/prediction/synthetic-dataset/generative-ai")
+def predict_generative_ai_synthetic(
+    dataset: DatasetEnum = DatasetEnum.SYNTHETIC_PHRASES,
+    model: ModelsGenerativeEnum = ModelsGenerativeEnum.GEMMA,
+    batch_size: int = 8,
+    limit: int = 200,
+):
+    """
+    Make predictions with a Generative AI model for sexism detection.
+    """
+    try:
+        # Cargar el dataset
+        df = pd.read_csv(dataset.csv_path)
+
+        # Obtener ruta de los resultados
+        result_path = os.path.join(
+            settings.FILES_PATH,
+            "generative_results",  # Los metemos dentro de la carpeta de generative_results para no mezclar
+            dataset.model_folder_path,
+            model.value.split("/")[-1],
+        )
+        predictions_file = os.path.join(
+            result_path, f"predictions_{model.value.split("/")[-1]}.csv"
+        )
+
+        # Crear el archivo si no está ya creado
+        if not os.path.exists(result_path):
+            os.makedirs(result_path)
+
+        if not os.path.exists(predictions_file):
+            # Si no está creado, crea un dataset vacio con las columnas "rewire_id" y "predictions"
+            df_results = pd.DataFrame(columns=["text", "manual_score", "preds"])
+            df_results.to_csv(predictions_file, index=False)
+        else:
+            # Si lo está, cargar los datos que ya se han calculado
+            df_results = pd.read_csv(predictions_file)
+
+        # Obtener los datos del dataset (df) que todavía no se han calculado ordenados por rewire_id
+        df_to_calculate = df[~df["text"].isin(df_results["text"])][
+            ["text", "manual_score"]
+        ]
+
+        # Limitamos a los 400 primeros
+        df_to_calculate = df_to_calculate.head(limit)
+
+        # Obtenemos los textos que no se han calculado
+        texts = df_to_calculate["text"].tolist()
+
+        # Calcular las predicciones que faltan
+        df_to_calculate["preds"] = predict_sexism_generative_model(
+            model_name=model, texts=texts, batch_size=batch_size
+        )
+
+        # Guardar los resultados en el archivo CSV con la lista de predicciones y la lista de rewire_id
+        df_results = pd.concat([df_results, df_to_calculate])
+
+        # Guardamos el archivo CSV con los resultados
+        df_results.to_csv(predictions_file, index=False)
+
+        return {
+            "message": f"Predictions with {model.name} for the dataset {dataset.name}",
+        }
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 @router.post("/evaluation/generative-ai")
 def evaluate_generation_ai_model(dataset: DatasetEnum, model: ModelsGenerativeEnum):
     """
