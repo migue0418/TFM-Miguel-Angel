@@ -1,0 +1,31 @@
+text,manual_score,predict_edos,score_not,score_sexist
+Women are not as good at math as men.,1.0,sexist,4.0669485201760835e-07,0.9999996423721313
+A man staying home to care for children is wasting his potential.,1.0,not sexist,0.93337482213974,0.06662523001432419
+Engineering jobs are too complicated for women.,1.0,sexist,7.20208390703192e-07,0.9999992847442627
+It’s natural for women to prefer care-related jobs.,1.0,sexist,2.419715019641444e-05,0.9999758005142212
+Men should be the sole financial providers for the family.,1.0,sexist,0.019824042916297913,0.9801760315895081
+Women always let emotions influence important decisions.,1.0,sexist,5.954117114015389e-06,0.9999940395355225
+A strong leader is always a man.,1.0,sexist,0.06343186646699905,0.9365682005882263
+Women are not made for high-stress jobs.,1.0,sexist,2.1489006030606106e-05,0.9999785423278809
+It's unprofessional for men to cry in public.,1.0,sexist,0.043748173862695694,0.9562518000602722
+Women should not work if they have small children.,1.0,sexist,4.356827787432849e-08,1.0
+The ability to lead depends on a person's experience and skills.,0.0,not sexist,0.999850869178772,0.00014914038183633238
+All employees have the same access to training opportunities.,0.0,not sexist,0.9993106126785278,0.0006893427926115692
+Students should be evaluated based on their academic performance.,0.0,not sexist,0.9999845027923584,1.55479610839393e-05
+"Anyone, regardless of gender, can excel in the scientific field.",0.0,not sexist,0.9999021291732788,9.788168972590938e-05
+Household responsibilities should be shared equally among family members.,0.0,not sexist,0.9995357990264893,0.0004642037383746356
+Everyone's opinions are valid in a respectful debate.,0.0,not sexist,0.9999994039535522,6.364552405102586e-07
+Work performance is measured by achieved goals.,0.0,not sexist,0.9997881054878235,0.0002119324344675988
+All human beings deserve fair and respectful treatment.,0.0,not sexist,0.999836802482605,0.00016314734239131212
+Important family decisions should be made together.,0.0,not sexist,0.99991774559021,8.218896255129948e-05
+Educational programs should promote equality and respect.,0.0,not sexist,0.9993452429771423,0.0006546940421685576
+"In most families, women tend to take care of the household.",0.5,sexist,0.00033657398307695985,0.9996634721755981
+Men are often more competitive in sports than women.,0.5,sexist,0.0009455375256948173,0.999054491519928
+It’s common for women to excel in teaching and caregiving roles.,0.5,sexist,0.009050490334630013,0.9909495711326599
+Some people think men are usually better at technical tasks.,0.5,sexist,0.05572151392698288,0.9442784190177917
+"Culturally, men are expected to be the protectors in a relationship.",0.5,sexist,0.3465803563594818,0.6534196734428406
+Women often have a better capacity for empathy than men.,0.5,sexist,0.0012854462256655097,0.9987145662307739
+It’s typical for men to lead in traditional work environments.,0.5,sexist,0.2499164342880249,0.7500836253166199
+Women are often perceived as more organized than men.,0.5,sexist,5.941989456914598e-06,0.9999940395355225
+"In many cultures, women are expected to prioritize family over their careers.",0.5,sexist,4.496485780691728e-05,0.9999550580978394
+Women have a natural inclination for creative jobs.,0.5,sexist,0.0003592107386793941,0.9996408224105835

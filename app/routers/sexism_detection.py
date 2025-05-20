@@ -258,7 +258,13 @@ def evaluate_generation_ai_model(dataset: DatasetEnum, model: ModelsGenerativeEn
 
 
 @router.post("/evaluation/classification-models")
-def evaluate_classification_model(dataset: DatasetEnum, model: ModelsEnum):
+def evaluate_classification_model(
+    dataset: DatasetEnum,
+    model: ModelsEnum,
+    unsure: bool = False,
+    folder: str = "reddit_bias_edos_prediction",
+    column_label: str = "label_reddit_bias",
+):
     """
     Make predictions with a classification model for sexism detection.
     """
@@ -266,7 +272,7 @@ def evaluate_classification_model(dataset: DatasetEnum, model: ModelsEnum):
         # Obtener ruta de los resultados
         result_path = os.path.join(
             settings.FILES_PATH,
-            "reddit_bias_edos_prediction",
+            folder,
             model.value.split("/")[-1],
         )
         predictions_file = os.path.join(
@@ -323,10 +329,21 @@ def evaluate_classification_model(dataset: DatasetEnum, model: ModelsEnum):
         df["score_not"] = score_not
         df["score_sexist"] = score_sex
 
+        if unsure:
+            # Añadimos la columna unsure cuando la probabilidad está entre 0.4 y 0.6
+            df["predict_edos"] = df.apply(
+                lambda x: (
+                    "unsure"
+                    if (x["score_not"] >= 0.4 and x["score_not"] <= 0.6)
+                    else x["predict_edos"]
+                ),
+                axis=1,
+            )
+
         # Guardar los resultados en el archivo CSV
         cols_out = [
             "text",
-            "label_reddit_bias",
+            column_label,
             "predict_edos",
             "score_not",
             "score_sexist",
@@ -348,7 +365,12 @@ def evaluate_classification_model(dataset: DatasetEnum, model: ModelsEnum):
 
 
 @router.post("/evaluation/classification-models-classes")
-def evaluate_classification_model_classes(dataset: DatasetEnum, model: ModelsEnum):
+def evaluate_classification_model_classes(
+    dataset: DatasetEnum,
+    model: ModelsEnum,
+    folder: str = "reddit_bias_edos_prediction",
+    column_label: str = "label_reddit_bias",
+):
     """
     Make predictions with a classification model for sexism detection.
     """
@@ -356,7 +378,7 @@ def evaluate_classification_model_classes(dataset: DatasetEnum, model: ModelsEnu
         # Obtener ruta de los resultados
         result_path = os.path.join(
             settings.FILES_PATH,
-            "reddit_bias_edos_prediction",
+            folder,
             model.value.split("/")[-1],
         )
         predictions_file = os.path.join(
@@ -368,9 +390,51 @@ def evaluate_classification_model_classes(dataset: DatasetEnum, model: ModelsEnu
 
         # Agrupamos por label_sexist y predict para ver cuántos hay de cada uno
         df_grouped = (
-            df.groupby(["label_reddit_bias", "predict_edos"])
-            .size()
-            .reset_index(name="count")
+            df.groupby([column_label, "predict_edos"]).size().reset_index(name="count")
+        )
+
+        # Obtenemos
+        print(df_grouped)
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/evaluation/generative-models-classes")
+def evaluate_generative_model_classes(
+    dataset: DatasetEnum,
+    model: ModelsGenerativeEnum,
+    folder: str = "reddit_bias_edos_prediction",
+    column_label: str = "label_reddit_bias",
+):
+    """
+    Make predictions with a classification model for sexism detection.
+    """
+    try:
+        # Obtener ruta de los resultados
+        result_path = os.path.join(
+            settings.FILES_PATH,
+            folder,
+            model.value.split("/")[-1],
+        )
+        predictions_file = os.path.join(
+            result_path, f"predictions_{model.value.split('/')[-1]}.csv"
+        )
+
+        # Cargar el dataset
+        df = pd.read_csv(predictions_file)
+        df["predict_edos"] = df["predict_edos"].map(
+            {1: "sexist", 0: "not sexist"}
+        )  # Convertimos a 0 y 1
+
+        # Agrupamos por label_sexist y predict para ver cuántos hay de cada uno
+        df_grouped = (
+            df.groupby([column_label, "predict_edos"]).size().reset_index(name="count")
         )
 
         # Obtenemos

@@ -44,6 +44,11 @@ class DatasetEnum(str, Enum):
         files_path / "edos_labelled_4_sexism_grade_reduced.csv",
         "edos_4_sexism_reduced",
     )
+    SYNTHETIC_PHRASES = (
+        "SYNTHETIC_PHRASES",
+        files_path / "synthetic_phrases_sexism.csv",
+        "synthetic_phrases",
+    )
 
     def __new__(cls, enum_name: str, csv_path: Path, model_folder_path: str):
         obj = str.__new__(cls, enum_name)
