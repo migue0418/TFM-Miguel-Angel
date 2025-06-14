@@ -1,6 +1,13 @@
 from fastapi import FastAPI
 from app.core.config import settings
-from app.routers import gtp_text, reddit, bias_detection, web_crawling, sexism_detection
+from app.routers import (
+    gtp_text,
+    reddit,
+    bias_detection,
+    web_crawling,
+    sexism_detection,
+    results,
+)
 from app.routers.RedditBias import data_preparation, evaluation
 
 # Registrar modelos en la base de datos
@@ -28,6 +35,7 @@ app.include_router(evaluation.router)
 app.include_router(sexism_detection.router)
 app.include_router(bias_detection.router)
 app.include_router(web_crawling.router)
+app.include_router(results.router)
 
 
 @app.get("/")
