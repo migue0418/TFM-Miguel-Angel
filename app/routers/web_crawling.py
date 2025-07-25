@@ -5,8 +5,16 @@ from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 from app.core.config import files_path
+from app.database.crud.domain import (
+    get_domains,
+    save_domain,
+    delete_domain,
+    update_domain,
+)
+from app.database.crud.url import get_urls, save_url, delete_url, update_url
 from app.database.db_service import DB
 from app.database.db_sqlalchemy import get_db
+from app.schemas.web import EditDomain, NewDomain, EditURL, NewURL
 from app.utils.sexism_classification import predict_sexism_text
 from app.utils.web_crawling import (
     get_sitemaps_from_domain,
@@ -80,7 +88,7 @@ def save_english_urls_from_sitemap_domain(domain: str, db: Session = Depends(get
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/domain/get-urls")
+@router.get("/domains/urls")
 def get_domain_urls_in_db(domain: str, db: Session = Depends(get_db)):
     """
     Get a list of the English urls from a domain sitemap saved in the database
@@ -105,7 +113,7 @@ def get_domain_urls_in_db(domain: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/domain/check-urls-not-checked")
+@router.post("/domains/check-urls-not-checked")
 def check_urls_not_checked(
     domain: str, filter_tag: str = None, db: Session = Depends(get_db)
 ):
@@ -204,3 +212,144 @@ def check_sexism_in_url(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.get("/domains")
+async def _get_domains(domain: str = None):
+    """
+    Get all domains or filter by a specific domain.
+    If domain is provided, it returns only that domain; otherwise, it returns all domains.
+    """
+    try:
+        return await get_domains(domain)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching domains: {str(e)}")
+
+
+@router.get("/domain/{id_domain}")
+async def _get_domain_by_id(id_domain: int):
+    """
+    Get a domain by its ID.
+    """
+    try:
+        return await get_domains(id_domain=id_domain)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching domain by ID {id_domain}: {str(e)}"
+        )
+
+
+@router.post("/domains")
+async def _save_domain(form_data: NewDomain):
+    """
+    Save a new domain to the database.
+    If the domain already exists, it returns the existing domain.
+    """
+    try:
+        return await save_domain(form_data.domain_url, form_data.absolute_url)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error saving domain {form_data.domain_url}: {str(e)}",
+        )
+
+
+@router.delete("/domain/{id_domain}")
+async def _delete_domain(id_domain: int):
+    """
+    Delete a domain by its ID.
+    """
+    try:
+        return await delete_domain(id_domain)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting domain with ID {id_domain}: {str(e)}",
+        )
+
+
+@router.put("/domain/{id_domain}")
+async def _update_domain(form_data: EditDomain):
+    """
+    Update an existing domain's URL or absolute URL.
+    If the domain does not exist, it raises an error.
+    """
+    try:
+        return await update_domain(
+            id_domain=form_data.id_domain,
+            domain_url=form_data.domain_url,
+            absolute_url=form_data.absolute_url,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating domain with ID {form_data.id_domain}: {str(e)}",
+        )
+
+
+@router.get("/urls")
+async def _get_urls(
+    id_domain: int = None, domain_url: str = None, url: str = None, id_url: int = None
+):
+    """
+    Get URLs based on various filters.
+    If id_domain or domain_url is provided, it returns URLs for that domain.
+    If url or id_url is provided, it returns a specific URL.
+    """
+    try:
+        return await get_urls(id_domain, domain_url, url, id_url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching URLs: {str(e)}")
+
+
+@router.post("/urls")
+async def _save_url(form_data: NewURL):
+    """
+    Save a new URL to the database.
+    If the URL already exists, it returns the existing URL.
+    """
+    try:
+        return await save_url(
+            form_data.id_domain,
+            form_data.absolute_url,
+            form_data.relative_url,
+            form_data.html_content,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error saving URL {form_data.absolute_url}: {str(e)}",
+        )
+
+
+@router.delete("/url/{id_url}")
+async def _delete_url(id_url: int):
+    """
+    Delete a URL by its ID.
+    """
+    try:
+        return await delete_url(id_url)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error deleting URL with ID {id_url}: {str(e)}"
+        )
+
+
+@router.put("/url/{id_url}")
+async def _update_url(form_data: EditURL):
+    """
+    Update an existing URL's absolute URL, relative URL, or HTML content.
+    If the URL does not exist, it raises an error.
+    """
+    try:
+        return await update_url(
+            form_data.id_url,
+            form_data.absolute_url,
+            form_data.relative_url,
+            form_data.html_content,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating URL with ID {form_data.id_url}: {str(e)}",
+        )

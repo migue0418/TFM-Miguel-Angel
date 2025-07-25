@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Form, Button, Spinner, Row, Col } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Modal, Form, Button } from 'react-bootstrap';
 import api from '../../../functions/api';
 import '../../../styles/Forms.css';
 import { useToast } from '../../ToastProvider';
 
-const NewCountryForm = ({
+const NewDomainForm = ({
   show, handleClose, onCreated,
 }) => {
-  const { showSuccess, showError, showInfo } = useToast();
+  const { showSuccess, showError } = useToast();
 
   /* ---------- state ---------- */
   const [formData, setFormData] = useState({
-    name: '',
+    absolute_url: '',
   });
 
   const handleChange = (e) => {
@@ -23,19 +23,24 @@ const NewCountryForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      formData.absolute_url = formData.absolute_url.trim();
+      // Obtenemos la url relativa del dominio a partir de la url absoluta
+      const relativeUrl = new URL(formData.absolute_url).hostname;
+      // Enviamos la solicitud de creación
       const token = localStorage.getItem('access_token');
-      const response = await api.post('/tourist-guide/management/countries/create', formData, {
+      const response = await api.post('/web-crawling/domains/', {domain_url: relativeUrl, absolute_url: formData.absolute_url}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       // Notificamos al padre que se creó el cliente
       onCreated(response.data);
+      showSuccess("Dominio creado correctamente");
       // Cerramos el modal
       handleClose();
     } catch (err) {
       console.error(err);
-      showError('No se pudo crear el pais');
+      showError('No se pudo crear el dominio');
     }
   };
 
@@ -49,17 +54,17 @@ const NewCountryForm = ({
       dialogClassName="basic-modal"
     >
       <Modal.Header closeButton>
-        <Modal.Title>Crear Nuevo Pais</Modal.Title>
+        <Modal.Title>Crear Nuevo Dominio</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
-            <Form.Label>Nombre</Form.Label>
+            <Form.Label>URL absoluta</Form.Label>
             <Form.Control
               type="text"
-              name="name"
-              value={formData.name}
+              name="absolute_url"
+              value={formData.absolute_url}
               onChange={handleChange}
               required
             />
@@ -68,7 +73,7 @@ const NewCountryForm = ({
           {/* ---------- botón ---------- */}
           <div className="d-grid">
             <Button variant="primary" type="submit" className="btn-dark">
-              Crear Pais
+              Crear Dominio
             </Button>
           </div>
         </Form>
@@ -77,4 +82,4 @@ const NewCountryForm = ({
   );
 };
 
-export default NewCountryForm;
+export default NewDomainForm;

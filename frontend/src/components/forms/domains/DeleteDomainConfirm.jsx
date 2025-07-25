@@ -3,7 +3,7 @@ import { Modal, Button, Spinner } from 'react-bootstrap';
 import api from '../../../functions/api';
 import { useToast } from '../../ToastProvider';
 
-const DeleteCountryConfirm = ({ data, show, handleClose, onDeleted }) => {
+const DeleteDomainConfirm = ({ data, show, handleClose, onDeleted }) => {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -13,15 +13,15 @@ const DeleteCountryConfirm = ({ data, show, handleClose, onDeleted }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
-      await api.delete(`/tourist-guide/management/countries/${data.id_country}`, {
+      await api.delete(`/web-crawling/domain/${data.id_domain}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      showSuccess('Pais eliminado');
-      onDeleted?.(data.id_country);
+      showSuccess('Dominio eliminado');
+      onDeleted?.(data.id_domain);
       handleClose();
     } catch (err) {
       console.error(err);
-      showError('No se pudo eliminar el pais');
+      showError('No se pudo eliminar el dominio');
     } finally {
       setLoading(false);
     }
@@ -30,11 +30,11 @@ const DeleteCountryConfirm = ({ data, show, handleClose, onDeleted }) => {
   return (
     <Modal show={show} onHide={handleClose} centered dialogClassName="basic-modal">
       <Modal.Header closeButton>
-        <Modal.Title>Eliminar Pais</Modal.Title>
+        <Modal.Title>Eliminar Dominio</Modal.Title>
       </Modal.Header>
 
       <Modal.Body className="text-center">
-        <p>¿Seguro que deseas eliminar a <strong>{data.name}</strong>?</p>
+        <p>¿Seguro que deseas eliminar a <strong>{data.domain_url}</strong>?</p>
       </Modal.Body>
 
       <Modal.Footer>
@@ -50,4 +50,4 @@ const DeleteCountryConfirm = ({ data, show, handleClose, onDeleted }) => {
   );
 };
 
-export default DeleteCountryConfirm;
+export default DeleteDomainConfirm;

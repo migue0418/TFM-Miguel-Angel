@@ -8,7 +8,7 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import { ProtectedRoute } from './functions/ProtectedRoute';
 import AppLayout from './components/AppLayout';
-import AnalyticsPage  from './pages/AnalyticsPage';
+import DomainsPage  from './pages/DomainsPage';
 import ProfilePage from './pages/ProfilePage';
 import UsersManagement from './pages/UsersManagement';
 import RolesManagement from './pages/RolesManagement';
@@ -33,7 +33,7 @@ export default function AppRoutes() {
 
             {/* Páginas encuestas */}
             <Route element={<RoleGuard allowedRoles={['sexism_detection', 'admin']} />}>
-                <Route path="analiticas" element={<AnalyticsPage />} />
+                <Route path="dominios" element={<DomainsPage />} />
             </Route>
 
             {/* Página perfil */}

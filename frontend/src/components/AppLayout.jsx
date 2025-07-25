@@ -60,7 +60,7 @@ const AppLayout = () => {
             <header className="app-header" id="TopNavigation">
                 <nav className="nav-container">
                     {/* --------- LOGO --------- */}
-                    <a href='/app'><LogoPrincipal size={0.275} color='var(--color-primary)'/></a>
+                    <a href='/app'><LogoPrincipal size={0.25} color='var(--color-primary)'/></a>
 
                     {/* --------- ENLACES PRINCIPALES --------- */}
                     <ul className="nav-links">

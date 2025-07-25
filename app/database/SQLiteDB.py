@@ -112,6 +112,27 @@ class SQLiteDB:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 
+    async def delete(
+        self,
+        table: str,
+        where_conditions: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Execute a query with params.
+        Returns number of rows affected.
+        """
+        if not self.conn:
+            raise RuntimeError("Database not connected. Call connect() first.")
+
+        where_clause = " AND ".join([f"{k} = ?" for k in where_conditions])
+        query = f"DELETE FROM {table} WHERE {where_clause}"
+        params = tuple(where_conditions.values())
+
+        async with self.conn.execute(query, params) as cursor:
+            count = cursor.rowcount
+            await self.conn.commit()
+            return count
+
     async def execute(
         self,
         query: str,

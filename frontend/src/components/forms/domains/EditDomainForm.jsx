@@ -5,13 +5,13 @@ import '../../../styles/Forms.css'
 import { useToast } from '../../ToastProvider';
 
 
-const EditCountryForm = ({ data, show, handleClose, onUpdated }) => {
+const EditDomainForm = ({ data, show, handleClose, onUpdated }) => {
   const [formData, setFormData] = useState({
-    id_country: '',
-    name: '',
+    domain_url: '',
+    absolute_url: '',
   });
 
-  const { showSuccess, showError, showInfo, showWarning } = useToast();
+  const { showSuccess, showError } = useToast();
   useEffect(() => {
     if (data) {
       // Copiamos los campos de la licencia en el estado
@@ -27,34 +27,40 @@ const EditCountryForm = ({ data, show, handleClose, onUpdated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      formData.absolute_url = formData.absolute_url.trim();
+      // Obtenemos la url relativa del dominio a partir de la url absoluta
+      const relativeUrl = new URL(formData.absolute_url).hostname;
+      setFormData(prev => ({ ...prev, domain_url: relativeUrl }));
+      // Enviamos la solicitud de actualización
       const token = localStorage.getItem('access_token');
-      const response = await api.post('/tourist-guide/management/countries/edit', formData, {
+      const response = await api.put(`/web-crawling/domain/${data.id_domain}`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       // Notificamos al padre que se creó el cliente
       onUpdated(response.data);
+      showSuccess("Dominio actualizado correctamente");
       // Cerramos el modal
       handleClose();
     } catch (error) {
-      showError('Error al actualizar el pais:', error);
+      showError('Error al actualizar el dominio:', error);
     }
   };
 
   return (
     <Modal show={show} onHide={handleClose} backdrop="static" keyboard={false} centered dialogClassName="basic-modal">
       <Modal.Header closeButton>
-        <Modal.Title>Actualizar Información de Pais</Modal.Title>
+        <Modal.Title>Actualizar Información de Dominio</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
-            <Form.Label>Nombre</Form.Label>
+            <Form.Label>URL absoluta</Form.Label>
             <Form.Control
               type="text"
-              name="name"
-              value={formData.name}
+              name="absolute_url"
+              value={formData.absolute_url}
               onChange={handleChange}
               required
             />
@@ -62,7 +68,7 @@ const EditCountryForm = ({ data, show, handleClose, onUpdated }) => {
 
           <div className="d-grid">
             <Button variant="primary" type="submit" className='btn-dark'>
-              Actualizar Pais
+              Actualizar Dominio
             </Button>
           </div>
         </Form>
@@ -71,4 +77,4 @@ const EditCountryForm = ({ data, show, handleClose, onUpdated }) => {
   );
 };
 
-export default EditCountryForm;
+export default EditDomainForm;
