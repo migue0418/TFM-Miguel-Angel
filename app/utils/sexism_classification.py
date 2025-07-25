@@ -14,6 +14,7 @@ from app.enums.models_enums import ModelsEnum, ModelsGenerativeEnum
 from app.core.config import files_path
 from app.core.config import settings
 from app.prompts.classification_prompts import get_sexism_binary_classification_prompt
+from app.utils.bias_classification import get_model_path
 from app.utils.preprocessing import clean_text_from_edos
 
 
@@ -67,25 +68,49 @@ def generate_4_sexism_labels_dataset():
 
     # Obtenemos un dataset reducido para entrenar más rápido
     data_sexist = df_merged[df_merged["sexism_grade"] == "sexist"].sample(
-        n=1250, random_state=42
+        n=2000, random_state=42
     )
     data_not_sexist = df_merged[df_merged["sexism_grade"] == "not sexist"].sample(
-        n=1250, random_state=42
+        n=2000, random_state=42
     )
     data_high_sexist = df_merged[
         df_merged["sexism_grade"] == "sexist (high confidence)"
-    ].sample(n=1250, random_state=42)
+    ].sample(n=1871, random_state=42)
     data_low_sexist = df_merged[
         df_merged["sexism_grade"] == "sexist (low confidence)"
-    ].sample(n=1250, random_state=42)
+    ].sample(n=2000, random_state=42)
 
     # Concatenamos los dataframes
     data_reduced = pd.concat(
         [data_sexist, data_not_sexist, data_high_sexist, data_low_sexist]
     )
 
+    from sklearn.model_selection import train_test_split
+
+    # Asignar splits balanceando cada etiqueta
+    def stratified_split(df, label_col="sexism_grade"):
+        df_list = []
+        for label in df[label_col].unique():
+            df_label = df[df[label_col] == label]
+            train, temp = train_test_split(
+                df_label, test_size=0.3, random_state=42, stratify=None
+            )
+            dev, test = train_test_split(
+                temp, test_size=2 / 3, random_state=42, stratify=None
+            )  # 10% dev, 20% test
+            train["split"] = "train"
+            dev["split"] = "dev"
+            test["split"] = "test"
+            df_list.extend([train, dev, test])
+        return pd.concat(df_list).sample(frac=1, random_state=42).reset_index(drop=True)
+
+    # Reasignar los splits en el dataset reducido
+    data_reduced = stratified_split(data_reduced)
+
     # Hacemos un shuffle de los datos
     data_reduced = data_reduced.sample(frac=1, random_state=42).reset_index(drop=True)
+
+    print(data_reduced.groupby(["sexism_grade", "split"]).size())
 
     # Guardamos el dataset reducido
     data_reduced.to_csv(
@@ -136,6 +161,100 @@ def generate_4_sexism_labels_dataset():
     )
 
     return "Los datasets de consenso han sido creados"
+
+
+def generate_3_sexism_labels_dataset():
+    import pandas as pd
+    from sklearn.model_selection import train_test_split
+
+    # Cargar el dataset con pandas
+    csv_path = files_path / "edos_labelled_individual_annotations.csv"
+    df = pd.read_csv(csv_path)
+
+    # Agrupar por rewire_id y recolectar las etiquetas en una lista
+    grouped = (
+        df.groupby("rewire_id")["label_sexist"]
+        .apply(list)
+        .reset_index(name="annot_labels")
+    )
+
+    # Clasificar cada rewire_id en base a las 4 anotaciones
+    def classify_3_labels(label_list):
+        # Hacemos un count de sexist
+        count_sexist = label_list.count("sexist")
+        # Si tiene 3 es "sexist"
+        if count_sexist == 3:
+            return "sexist"
+        # Si tiene 2 es "unsure (low + high confidence)"
+        if count_sexist == 2 or count_sexist == 1:
+            return "unsure"
+        # Si tiene 0 es "not sexist"
+        return "not sexist"
+
+    # Añadimos el grado de sexismo
+    grouped["sexism_grade"] = grouped["annot_labels"].apply(classify_3_labels)
+
+    # Carga el dataset de aggregated y obtiene la etiqueta de ahí uniéndolo con grouped
+    df_aggregated = pd.read_csv(files_path / "edos_labelled_aggregated.csv")
+    df_aggregated["text"] = df_aggregated["text"].apply(clean_text_from_edos)
+
+    # Mergeamos con el dataset de aggregated porque ya los tiene agrupados
+    df_merged = pd.merge(
+        df_aggregated,
+        grouped[["rewire_id", "sexism_grade"]],
+        on="rewire_id",
+        how="left",
+    )
+
+    # Guardamos el nuevo CSV con las 3 etiquetas
+    df_merged.to_csv(files_path / "edos_labelled_3_sexism_grade.csv", index=False)
+
+    def safe_sample(df, n, label_name):
+        available = len(df)
+        if n > available:
+            print(
+                f"⚠️  No hay suficientes muestras en '{label_name}' (disponibles: {available}, solicitadas: {n}). Usando todas."
+            )
+            return df
+        return df.sample(n=n, random_state=42)
+
+    data_sexist = safe_sample(
+        df_merged[df_merged["sexism_grade"] == "sexist"], 3000, "sexist"
+    )
+    data_not_sexist = safe_sample(
+        df_merged[df_merged["sexism_grade"] == "not sexist"], 3000, "not sexist"
+    )
+    data_unsure = safe_sample(
+        df_merged[df_merged["sexism_grade"] == "unsure"], 3000, "unsure"
+    )
+
+    # Concatenamos los dataframes
+    data_reduced = pd.concat([data_sexist, data_not_sexist, data_unsure])
+
+    # División estratificada 70/10/20
+    def stratified_split(df, label_col="sexism_grade"):
+        df_list = []
+        for label in df[label_col].unique():
+            df_label = df[df[label_col] == label]
+            train, temp = train_test_split(df_label, test_size=0.3, random_state=42)
+            dev, test = train_test_split(temp, test_size=2 / 3, random_state=42)
+            train["split"] = "train"
+            dev["split"] = "dev"
+            test["split"] = "test"
+            df_list.extend([train, dev, test])
+        return pd.concat(df_list).sample(frac=1, random_state=42).reset_index(drop=True)
+
+    # Reasignar los splits
+    data_reduced = stratified_split(data_reduced)
+
+    # Guardamos el dataset reducido
+    data_reduced.to_csv(
+        files_path / "edos_labelled_3_sexism_grade_reduced.csv", index=False
+    )
+
+    print(data_reduced.groupby(["sexism_grade", "split"]).size())
+
+    return "Dataset con 3 etiquetas creado y guardado."
 
 
 def train_model_4_labels(dataset: DatasetEnum, model_name: ModelsEnum):
@@ -388,3 +507,42 @@ def predict_sexism_generative_model(
         print(f"\tTime: {time.time() - start_time:.2f} seconds")
 
     return predictions
+
+
+def predict_sexism_text(texts: list[str], model: ModelsEnum = ModelsEnum.MODERN_BERT):
+    # Obtenemos el modelo entrenado con el dataset de edos
+    dataset = DatasetEnum.EDOS_REDUCED_FULL
+    model_path = get_model_path(dataset, model)
+
+    # Creamos el pipeline de clasificación
+    device = 0 if torch.cuda.is_available() else -1
+    clf = pipeline(
+        "text-classification",
+        model=AutoModelForSequenceClassification.from_pretrained(model_path),
+        tokenizer=AutoTokenizer.from_pretrained(model_path),
+        device=device,
+        return_all_scores=True,
+        truncation=True,
+    )
+
+    # Inferencia en lotes
+    batch_size = 32
+    results = []
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i : i + batch_size]
+        outputs = clf(batch)
+
+        for txt, out in zip(batch, outputs):
+            not_s, sex_s = out[0]["score"], out[1]["score"]
+            pred = "sexist" if sex_s >= not_s else "not sexist"
+            results.append(
+                {
+                    "text": txt,
+                    "pred": pred,
+                    "score_not_sexist": float(not_s),
+                    "score_sexist": float(sex_s),
+                }
+            )
+
+    return results

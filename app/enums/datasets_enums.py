@@ -44,6 +44,11 @@ class DatasetEnum(str, Enum):
         files_path / "edos_labelled_4_sexism_grade_reduced.csv",
         "edos_4_sexism_reduced",
     )
+    EDOS_3_SEXISM_REDUCED = (
+        "EDOS_3_SEXISM_REDUCED",
+        files_path / "edos_labelled_3_sexism_grade_reduced.csv",
+        "edos_3_sexism_reduced",
+    )
     SYNTHETIC_PHRASES = (
         "SYNTHETIC_PHRASES",
         files_path / "synthetic_phrases_sexism.csv",

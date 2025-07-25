@@ -11,7 +11,9 @@ from app.enums.models_enums import ModelsEnum, ModelsGenerativeEnum
 from app.utils.bias_classification import get_model_path
 from app.utils.sexism_classification import (
     generate_4_sexism_labels_dataset,
+    generate_3_sexism_labels_dataset,
     predict_sexism_generative_model,
+    predict_sexism_text,
     train_model_4_labels,
 )
 
@@ -32,6 +34,27 @@ def generate_dataset_with_4_sexism_labels():
     try:
         # Generate the datasets
         generate_4_sexism_labels_dataset()
+
+        return {"message": "The datasets has been generated successfully."}
+
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/preprocessing/generate-dataset-with-3-sexism-labels")
+def generate_dataset_with_3_sexism_labels():
+    """
+    Generate a dataset with 3 labels of sexism (not sexist, unsure (high+low), sexist) based on the individual annotations.
+    Also generates 3 test dataset to evaluate the model and a reduced one for easier training.
+    """
+    try:
+        # Generate the datasets
+        generate_3_sexism_labels_dataset()
 
         return {"message": "The datasets has been generated successfully."}
 
@@ -285,8 +308,12 @@ def evaluate_generation_ai_model(dataset: DatasetEnum, model: ModelsGenerativeEn
         df = pd.read_csv(predictions_file)
 
         # Obtenemos las predicciones y los resultados reales
-        y_true = df["label_sexist"].tolist()
-        y_pred = df["preds"].tolist()
+        label = "label_sexist" if dataset.name != "REDDIT_BIAS" else "label_reddit_bias"
+        if dataset.name == "SYNTHETIC_PHRASES":
+            label = "manual_score"
+        preds = "preds" if dataset.name != "REDDIT_BIAS" else "predict_edos"
+        y_true = df[label].tolist()
+        y_pred = df[preds].tolist()
 
         # Cargar las métricas
         accuracy = evaluate.load("accuracy")
@@ -298,11 +325,15 @@ def evaluate_generation_ai_model(dataset: DatasetEnum, model: ModelsGenerativeEn
         accuracy_score = accuracy.compute(references=y_true, predictions=y_pred)[
             "accuracy"
         ]
-        f1_score = f1.compute(references=y_true, predictions=y_pred)["f1"]
-        precision_score = precision.compute(references=y_true, predictions=y_pred)[
-            "precision"
+        f1_score = f1.compute(references=y_true, predictions=y_pred, average="macro")[
+            "f1"
         ]
-        recall_score = recall.compute(references=y_true, predictions=y_pred)["recall"]
+        precision_score = precision.compute(
+            references=y_true, predictions=y_pred, average="macro"
+        )["precision"]
+        recall_score = recall.compute(
+            references=y_true, predictions=y_pred, average="macro"
+        )["recall"]
         results = (
             {
                 "accuracy": accuracy_score,
@@ -333,6 +364,7 @@ def evaluate_generation_ai_model(dataset: DatasetEnum, model: ModelsGenerativeEn
 def evaluate_classification_model(
     dataset: DatasetEnum,
     model: ModelsEnum,
+    dataset_model: DatasetEnum = DatasetEnum.EDOS_REDUCED_FULL,
     unsure: bool = False,
     folder: str = "reddit_bias_edos_prediction",
     column_label: str = "label_reddit_bias",
@@ -341,10 +373,12 @@ def evaluate_classification_model(
     Make predictions with a classification model for sexism detection.
     """
     try:
+        threshold_unsure: tuple = (0.4, 0.6)
         # Obtener ruta de los resultados
         result_path = os.path.join(
             settings.FILES_PATH,
             folder,
+            dataset.name,
             model.value.split("/")[-1],
         )
         predictions_file = os.path.join(
@@ -364,66 +398,132 @@ def evaluate_classification_model(
                 columns={"comment": "text", "bias_sent": "label_reddit_bias"}
             )
 
-        # Obtenemos el modelo entrenado con el dataset de edos
-        dataset_edos = DatasetEnum.EDOS_REDUCED_FULL
-        model_path = get_model_path(dataset_edos, model)
+        df = df[df["split"] == "test"]  # Filtramos solo por los textos de test
 
-        # Creamos el pipeline de clasificación
+        # Obtenemos el modelo entrenado con el dataset de edos
+        model_path = get_model_path(dataset_model, model)
         device = 0 if torch.cuda.is_available() else -1
+
+        hf_model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        hf_tokenizer = AutoTokenizer.from_pretrained(model_path)
+        labels = list(
+            hf_model.config.id2label.values()
+        )  # ['not sexist', 'sexist', ...]
+        n_labels = len(labels)
+
         clf = pipeline(
             "text-classification",
-            model=AutoModelForSequenceClassification.from_pretrained(model_path),
-            tokenizer=AutoTokenizer.from_pretrained(model_path),
+            model=hf_model,
+            tokenizer=hf_tokenizer,
             device=device,
             return_all_scores=True,
             truncation=True,
             max_length=128,
         )
 
-        # Inferencia en lotes
-        texts = df["text"].tolist()
+        # ---------- inferencia ----------
         batch_size = 32
-        preds, score_not, score_sex = [], [], []
+        texts = df["text"].tolist()
+
+        # Dinámicamente creamos una columna por score_<etiqueta>
+        id2label = hf_model.config.id2label
+        label2id = {v: k for k, v in id2label.items()}
+        labels = list(id2label.values())
+        n_labels = len(labels)
+
+        score_cols = {f"score_{lbl.replace(' ', '_')}": [] for lbl in labels}
+        preds = []
 
         for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            outputs = clf(batch)  # lista de listas (dos dicts por ejemplo)
+            outs = clf(texts[i : i + batch_size])
+            for out in outs:
+                score_dict = {item["label"]: item["score"] for item in out}
 
-            for out in outputs:
-                # se asume orden   0 → not sexist, 1 → sexist
-                not_s, sex_s = out[0]["score"], out[1]["score"]
-                score_not.append(not_s)
-                score_sex.append(sex_s)
-                preds.append("sexist" if sex_s >= not_s else "not sexist")
+                # guardar scores
+                for lbl in labels:
+                    score_cols[f"score_{lbl.replace(' ', '_')}"].append(score_dict[lbl])
 
-        # Añadimos los resultados al dataframe
+                # predicción principal
+                pred_name = max(out, key=lambda x: x["score"])["label"]
+
+                # opcional unsure (solo si 2 clases)
+                if unsure and n_labels == 2:
+                    pos_label = labels[1]  # la segunda suele ser la “positiva”
+                    if (
+                        threshold_unsure[0]
+                        <= score_dict[pos_label]
+                        <= threshold_unsure[1]
+                    ):
+                        pred_name = "unsure"
+
+                preds.append(pred_name)
+
+        # ---------- dataframe de salida ----------
         df["predict_edos"] = preds
-        df["score_not"] = score_not
-        df["score_sexist"] = score_sex
+        for col, values in score_cols.items():
+            df[col] = values
 
-        if unsure:
-            # Añadimos la columna unsure cuando la probabilidad está entre 0.4 y 0.6
-            df["predict_edos"] = df.apply(
-                lambda x: (
-                    "unsure"
-                    if (x["score_not"] >= 0.4 and x["score_not"] <= 0.6)
-                    else x["predict_edos"]
-                ),
-                axis=1,
+        out_cols = ["text", column_label, "predict_edos"] + list(score_cols.keys())
+        df[out_cols].to_csv(predictions_file, index=False)
+
+        # 1) Normaliza etiquetas reales y predichas a minúsculas
+        y_true = df[column_label].astype(str).str.strip().str.lower()
+        y_pred = df["predict_edos"].astype(str).str.strip().str.lower()
+
+        # 2) Clasificación y matriz de confusión (scikit-learn)
+        from sklearn.metrics import classification_report, confusion_matrix
+
+        cls_report = classification_report(
+            y_true, y_pred, output_dict=True, zero_division=0
+        )
+
+        # 3) Guarda las métricas a disco (opcional)
+        (
+            pd.DataFrame(cls_report)
+            .T.round(4)
+            .to_csv(
+                os.path.join(result_path, "classification_report.csv"),
+                index_label="class",
             )
+        )
 
-        # Guardar los resultados en el archivo CSV
-        cols_out = [
-            "text",
-            column_label,
-            "predict_edos",
-            "score_not",
-            "score_sexist",
-        ]
-        df[cols_out].to_csv(predictions_file, index=False)
+        # --- calcula matriz ---------------------------------
+        conf_mat = confusion_matrix(y_true, y_pred, labels=labels)
+
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        # --- plot & save ------------------------------------
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(
+            conf_mat,
+            annot=True,
+            fmt="d",
+            cmap="Blues",
+            xticklabels=labels,
+            yticklabels=labels,
+        )
+        plt.xlabel("Predicted label")
+        plt.ylabel("True label")
+        plt.title("Confusion Matrix")
+
+        # nombre de archivo con timestamp para evitar sobrescrituras
+        img_name = f"confusion_matrix.png"
+        img_path = os.path.join(result_path, img_name)
+        plt.savefig(img_path, dpi=300, bbox_inches="tight")
+        plt.close()  # libera memoria
+
+        # --- opcional: registrar la ruta --------------------
+        print(f"Matriz de confusión guardada en: {img_path}")
 
         return {
             "message": f"Results with {model.name} for the dataset {dataset.name}",
+            "metrics": {
+                "accuracy": round(cls_report["accuracy"], 4),
+                "precision": round(cls_report["macro avg"]["precision"], 4),
+                "recall": round(cls_report["macro avg"]["recall"], 4),
+                "f1_macro": round(cls_report["macro avg"]["f1-score"], 4),
+            },
             "results": preds,
         }
 
@@ -449,8 +549,7 @@ def evaluate_classification_model_classes(
     try:
         # Obtener ruta de los resultados
         result_path = os.path.join(
-            settings.FILES_PATH,
-            folder,
+            "app/results/reddit_bias",
             model.value.split("/")[-1],
         )
         predictions_file = os.path.join(
@@ -517,5 +616,19 @@ def evaluate_generative_model_classes(
             status_code=400,
             detail=f"Validation error: {', '.join([str(err) for err in e.errors()])}",
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/sexism-detection/text")
+def detect_sexism_in_text(
+    model: ModelsEnum,
+    text: str,
+):
+    """
+    Detect sexism in a given text using a specified model.
+    """
+    try:
+        return predict_sexism_text(texts=[text], model=model)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

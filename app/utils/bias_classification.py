@@ -487,6 +487,8 @@ def predict_sexism_batch(model_path: str, texts: list[str]) -> list[dict[str, fl
     # Clasificar la lista de textos (si texts es muy grande, hace batching automáticamente)
     results = classifier(texts)
 
+    results = [res["label"] for res in results]
+
     return results
 
 
