@@ -8,7 +8,12 @@ from app.core.config import files_path
 from app.database.db_service import DB
 from app.database.db_sqlalchemy import get_db
 from app.utils.sexism_classification import predict_sexism_text
-from app.utils.web_crawling import get_sitemaps_from_domain, get_all_urls_and_sitemaps, get_url_html_content, get_url_texts_content
+from app.utils.web_crawling import (
+    get_sitemaps_from_domain,
+    get_all_urls_and_sitemaps,
+    get_url_html_content,
+    get_url_texts_content,
+)
 
 router = APIRouter(
     prefix="/web-crawling",
@@ -35,8 +40,9 @@ def save_english_urls_from_sitemap_domain(domain: str, db: Session = Depends(get
         absolute_domain = f"{scheme}://{netloc}"
 
         # Add it to the database if not already there
-        domain_instance = db_manager.save_domain(domain_url=netloc,
-                                                 absolute_domain=absolute_domain)
+        domain_instance = db_manager.save_domain(
+            domain_url=netloc, absolute_domain=absolute_domain
+        )
 
         # Get the sitemap list of the domain
         sitemaps_urls = get_sitemaps_from_domain(absolute_domain)
@@ -97,10 +103,12 @@ def get_domain_urls_in_db(domain: str, db: Session = Depends(get_db)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-    
+
 
 @router.post("/domain/check-urls-not-checked")
-def check_urls_not_checked(domain: str, filter_tag: str = None, db: Session = Depends(get_db)):
+def check_urls_not_checked(
+    domain: str, filter_tag: str = None, db: Session = Depends(get_db)
+):
     """
     Get the urls from a domain that have not been checked for sexism
     """
@@ -129,15 +137,16 @@ def check_urls_not_checked(domain: str, filter_tag: str = None, db: Session = De
                 # Obtenemos el texto de la URL usando BeautifulSoup
                 texts = get_url_texts_content(html_text=content, filter_tag=filter_tag)
                 if not texts:
-                    raise HTTPException(status_code=404, detail="No text content found in the URL")
-                
+                    raise HTTPException(
+                        status_code=404, detail="No text content found in the URL"
+                    )
+
                 # Verificamos el sexismo en los textos
                 results = predict_sexism_text(texts)
 
                 for result in results:
                     # Guardamos el contenido sexista en la base de datos
                     db_manager.save_url_sexist_content(url, result)
-
 
         return urls_not_checked
 
@@ -146,7 +155,9 @@ def check_urls_not_checked(domain: str, filter_tag: str = None, db: Session = De
 
 
 @router.get("/url/check-sexism")
-def check_sexism_in_url(url: str, filter_tag: str = None, db: Session = Depends(get_db)):
+def check_sexism_in_url(
+    url: str, filter_tag: str = None, db: Session = Depends(get_db)
+):
     """
     Get a list of the English urls from a domain sitemap saved in the database
     """
@@ -162,23 +173,26 @@ def check_sexism_in_url(url: str, filter_tag: str = None, db: Session = Depends(
 
         # Comprobamos el dominio de la URL y lo intentamos guardar
         domain = db_manager.save_domain(
-            domain_url=domain,
-            absolute_domain=f"{parsed_url.scheme}://{domain}"
+            domain_url=domain, absolute_domain=f"{parsed_url.scheme}://{domain}"
         )
 
         # Obtenemos el contenido
         content = get_url_html_content(url)
         if not content:
-            raise HTTPException(status_code=404, detail="Content not found or inaccessible")
+            raise HTTPException(
+                status_code=404, detail="Content not found or inaccessible"
+            )
 
         # Comprobamos si la URL ya está en la base de datos
         url_instance = db_manager.save_url(domain, url, content)
-        
+
         # Obtenemos el texto de la URL usando BeautifulSoup
         texts = get_url_texts_content(html_text=content, filter_tag=filter_tag)
         if not texts:
-            raise HTTPException(status_code=404, detail="No text content found in the URL")
-        
+            raise HTTPException(
+                status_code=404, detail="No text content found in the URL"
+            )
+
         # Verificamos el sexismo en los textos
         results = predict_sexism_text(texts)
 

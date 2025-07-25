@@ -1,4 +1,5 @@
 import requests
+from bs4 import BeautifulSoup
 from xml.etree import ElementTree as ET
 
 
@@ -116,3 +117,55 @@ def get_english_urls_from_sitemap(sitemap_url: str):
                 if "en/" in url:
                     urls.append(url)
     return urls
+
+
+def get_url_html_content(url: str):
+    """
+    Get the content of a url
+    """
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException as e:
+        print(f"Error al acceder a la URL {url}: {e}")
+        return None
+
+
+def get_url_texts_content(html_text: str, filter_tag: str = None):
+    """
+    Extracts text content from HTML, removing scripts, styles, and other non-visible elements.
+    """
+    soup = BeautifulSoup(html_text, "html.parser")
+
+    # Remove script and style elements
+    for script_or_style in soup(["script", "style"]):
+        script_or_style.decompose()
+
+    # Cogemos solo el body del HTML
+    soup = soup.find("body")
+
+    # Si tiene main, cogemos solo el main
+    if soup and soup.find("main"):
+        soup = soup.find("main")
+
+    # Si hay que filtrar por algún tag específico, cogemos solo esos
+    if soup and filter_tag and soup.find_all(filter_tag):
+        soup = soup.find_all(filter_tag)
+
+    # Get the text content
+    text_content = [item.get_text(separator=" ", strip=True) for item in soup]
+    # Remove multiple spaces and newlines
+    text_content = [
+        text.replace("\n", " ").replace(r"\s+", " ").strip() for text in text_content
+    ]
+    text_content = [text for text in text_content if text]  # Filter out empty strings
+    # Split the texts by . to get individual sentences
+    text_content = [
+        line.replace(r"\s+", " ").strip()
+        for text in text_content
+        for line in text.split(".")
+        if line.replace(r"\s+", " ").strip()
+    ]
+
+    return text_content

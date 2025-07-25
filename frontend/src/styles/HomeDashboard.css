@@ -1,0 +1,54 @@
+.dash-card.neutral {
+  display:flex;align-items:center;gap:1.25rem;
+  width:100%;height:168px;padding:1.5rem 1.75rem;
+  background:#fff;border:2px solid #e1e1e1;border-radius:10px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.04);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+
+.dash-card.neutral:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.10);
+}
+
+.dash-card.neutral:focus { outline:none; }
+
+/* ---------- Círculo del icono ---------------------------------------- */
+.dash-icon-wrapper.neutral{
+  width:68px;height:68px;border-radius:50%;
+  background:#dedede;display:grid;place-items:center;
+  flex-shrink:0;transition:background .15s;
+}
+.dash-card.neutral:hover .dash-icon-wrapper.neutral{
+  background: #ca2a32ab;
+}
+
+.dash-icon-wrapper.neutral i{
+  font-size:1.9rem;
+  color:var(--color-primary);
+  line-height:1;
+}
+
+.dash-card.neutral:hover i{
+  color: var(--color-bg-text);
+}
+
+/* ---------- Texto ----------------------------------------------------- */
+.dash-content { text-align: left;}
+.dash-content h3{
+  margin:0;
+  font-size:1.21rem;
+  font-weight:600;
+  color:var(--color-primary)
+}
+.dash-content p {
+  margin:.35rem 0 0;
+  font-size:.92rem;
+  color:#6c6c6c;
+}
+
+/* ---------- Responsive: stack ---------------------------------------- */
+@media (max-width:575.98px){
+  .dash-card.neutral{flex-direction:column;height:auto;text-align:center;}
+  .dash-icon-wrapper.neutral{margin-bottom:.6rem;}
+}

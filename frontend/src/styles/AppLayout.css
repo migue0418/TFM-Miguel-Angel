@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* —— reset básico —— */
+body { margin: 0; font-family: 'Inter', system-ui, sans-serif; color: var(--color-text); }
+
+header { font-family: "Albert Sans", sans-serif;}
+
+
+#FullPageWrapper:not(.no-pad-top) {
+    padding-top: calc(var(--nav-space));
+}
+
+#FullPageWrapper {
+    min-height: 100vh;
+    flex-direction: column;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* —— HEADER + NAV —— */
+#TopNavigation {
+    top: 0;
+    position: fixed;
+    width: 100%;
+    z-index: 50;
+    background-color: var(--bg-light);
+    color: var(--color-text);
+    font-size: .93rem;
+    transition: background-color .25s ease-out;
+}
+
+.app-header {
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  overflow: visible;
+  position: relative;   /* para que z-index funcione */
+  z-index: 50;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* —— Icon button —— */
+.icon-btn {
+  background: none;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  line-height: 0;
+  transition: var(--transition);
+  width: 40px;
+}
+
+.icon-btn:hover { background: #f3f4f6; }
+
+.icon-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* —— Dropdown —— */
+.user-wrapper { position: relative; }
+.user-wrapper:hover .icon-btn {
+  color: var(--color-primary-hover);
+}
+
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);   /* 0.5 rem por debajo del icono  */
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08);
+  list-style: none;
+  padding: 0.5rem 0;
+  width: 160px;
+  z-index: 1000;              /*  ← ¡clave! se superpone a todo */
+}
+
+.user-dropdown button {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.user-dropdown button:hover {
+  background: #f9fafb;
+  color: var(--color-primary-hover);
+}
+
+.dropdown-menu button:hover { background: #f9fafb; }
+
+/* —— Main container —— */
+.app-main {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+
+/* contenedor principal */
+.nav-dropdown {
+  position: relative;
+}
+
+/* lista desplegable */
+.sub-menu {
+  position: absolute;
+  top: 100%;        /* justo debajo del padre */
+  left: 0;
+  background: #fff;
+  min-width: 220px;
+  padding: .5rem 0;
+  margin: 0;
+  list-style: none;
+  border: 1px solid #ddd;
+  border-radius: .25rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  z-index: 2000;    /* por encima de todo */
+}
+
+/* enlaces internos */
+.sub-menu li   { width: 100%; }
+
+.nav-sublink   {
+  display: block;
+  padding: .5rem 1rem;
+  color: #222;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-sublink:hover,
+.nav-sublink.active { background: #f5f7fa; color: var(--color-primary-hover); }

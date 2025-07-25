@@ -1,6 +1,9 @@
 import os
+from typing import Optional
 from dotenv import load_dotenv
 from pathlib import Path
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
 
 # Load the environment variables .env
 load_dotenv()
@@ -26,3 +29,11 @@ redditbias_data_path = Path(settings.REDDITBIAS_DATA_PATH)
 files_path = Path(settings.FILES_PATH)
 redditbias_files_path = Path(settings.REDDITBIAS_FILES_PATH)
 redditbias_execution_logs_path = Path(settings.REDDITBIAS_EXECUTION_LOGS_PATH)
+
+# OAuth
+ALGORITHM_JWT: Optional[str] = os.getenv("ALGORITHM_JWT")
+SECRET_KEY_JWT: Optional[str] = os.getenv("SECRET_KEY_JWT")
+ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
+# -- OAuth context & scheme
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
