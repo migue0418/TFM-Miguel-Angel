@@ -1,0 +1,6 @@
+class,precision,recall,f1-score,support
+not sexist,0.847,0.8067,0.8263,988.0
+sexist,0.8122,0.8515,0.8314,970.0
+accuracy,0.8289,0.8289,0.8289,0.8289
+macro avg,0.8296,0.8291,0.8289,1958.0
+weighted avg,0.8297,0.8289,0.8288,1958.0
