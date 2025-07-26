@@ -4,13 +4,13 @@ import api from '../../../functions/api';
 import '../../../styles/Forms.css';
 import { useToast } from '../../ToastProvider';
 
-const NewCityForm = ({
+const NewURLForm = ({
   show, handleClose, onCreated, countriesList = [], loadingCatalog
 }) => {
     const { showSuccess, showError, showInfo } = useToast();
 
     // Formulario inicial
-    const INITIAL_FORM = { name: '', id_city: '', id_country: ''};
+    const INITIAL_FORM = { name: '', id_url: '', id_country: ''};
 
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [loadingCountries, setLoadingTypes]   = useState(false);
@@ -25,7 +25,7 @@ const NewCityForm = ({
         e.preventDefault();
         try {
         const token = localStorage.getItem('access_token');
-        const response = await api.post('/tourist-guide/management/cities/create', formData, {
+        const response = await api.post('/web-crawling/urls/', {id_domain: id_domain, relative_url: relative_url, absolute_url: formData.absolute_url}, {
             headers: {
             'Authorization': `Bearer ${token}`
             }
@@ -36,7 +36,7 @@ const NewCityForm = ({
         handleClose();
         } catch (err) {
             console.error(err);
-            showError('No se pudo crear la ciudad');
+            showError('No se pudo crear la URL');
         }
     };
 
@@ -50,7 +50,7 @@ const NewCityForm = ({
         dialogClassName="basic-modal"
         >
         <Modal.Header closeButton>
-            <Modal.Title>Crear Nueva Ciudad</Modal.Title>
+            <Modal.Title>Crear Nueva URL</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
@@ -94,7 +94,7 @@ const NewCityForm = ({
             {/* ---------- botón ---------- */}
             <div className="d-grid">
                 <Button variant="primary" type="submit" className="btn-dark">
-                    Crear Ciudad
+                    Crear URL
                 </Button>
             </div>
             </Form>
@@ -103,4 +103,4 @@ const NewCityForm = ({
     );
 };
 
-export default NewCityForm;
+export default NewURLForm;

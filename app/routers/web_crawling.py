@@ -14,6 +14,7 @@ from app.database.crud.domain import (
 from app.database.crud.url import get_urls, save_url, delete_url, update_url
 from app.database.db_service import DB
 from app.database.db_sqlalchemy import get_db
+from app.schemas.inputs import TextInput
 from app.schemas.web import EditDomain, NewDomain, EditURL, NewURL
 from app.utils.sexism_classification import predict_sexism_text
 from app.utils.web_crawling import (
@@ -21,6 +22,7 @@ from app.utils.web_crawling import (
     get_all_urls_and_sitemaps,
     get_url_html_content,
     get_url_texts_content,
+    split_text_into_sentences,
 )
 
 router = APIRouter(
@@ -207,6 +209,50 @@ def check_sexism_in_url(
         for result in results:
             # Guardamos el contenido sexista en la base de datos
             db_manager.save_url_sexist_content(url_instance, result)
+
+        return results
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/text/check-sexism")
+def check_sexism_in_text(text: TextInput):
+    """
+    Get a list of the English urls from a domain sitemap saved in the database
+    """
+    try:
+        text = text.text.strip()
+
+        # Comprobamos si el texto es válido
+        if not text or not isinstance(text, str):
+            raise HTTPException(status_code=400, detail="Invalid text provided")
+
+        # Obtenemos las frases del texto
+        texts = split_text_into_sentences(text)
+
+        # Verificamos el sexismo en los textos
+        results = predict_sexism_text(texts)
+
+        # Obtenemos el porcentaje global de sexismo
+        total_texts = len(texts)
+
+        # Calculamos el número de textos sexistas y no sexistas
+        sexist_texts = sum(1 for result in results if result["pred"] == "sexist")
+        not_sexist_texts = total_texts - sexist_texts
+
+        # Calculamos el porcentaje de sexismo
+        sexism_percentage = (sexist_texts / total_texts) * 100 if total_texts > 0 else 0
+
+        # Devolvemos un JSON con los resultados globales y por frases
+        results = {
+            "global": {
+                "is_sexist": sexist_texts >= not_sexist_texts,
+                "sexism_percentage": sexism_percentage,
+                "total_texts": total_texts,
+            },
+            "texts": results,
+        }
 
         return results
 

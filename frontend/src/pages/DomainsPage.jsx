@@ -1,4 +1,4 @@
-// src/pages/AnalyticsPage.jsx
+// src/pages/DomainsPage.jsx
 import api from '../functions/api';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from 'react-bootstrap';

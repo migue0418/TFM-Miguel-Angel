@@ -9,10 +9,9 @@ const NewDomainForm = ({
 }) => {
   const { showSuccess, showError } = useToast();
 
-  /* ---------- state ---------- */
-  const [formData, setFormData] = useState({
-    absolute_url: '',
-  });
+  // Formulario inicial
+  const INITIAL_FORM = { absolute_url: ''};
+  const [formData, setFormData] = useState(INITIAL_FORM);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

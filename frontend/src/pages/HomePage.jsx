@@ -20,14 +20,21 @@ export default function HomePage() {
         text: 'Analiza textos y detecta lenguaje sexista.',
         icon: 'bi-people',
         to: '/detector-sexismo',
-        role: 'analysis'
+        role: 'sexism_detection'
+    },
+    {
+        title: 'Gestión',
+        text: 'Gestiona dominios y urls.',
+        icon: 'bi-globe',
+        to: '/gestion',
+        role: 'sexism_detection'
     },
     {
         title: 'Analíticas',
         text: 'Visualiza estadísticas y métricas.',
         icon: 'bi-people',
         to: '/analiticas',
-        role: 'analysis'
+        role: 'sexism_detection'
     },
     {
         title: 'Panel Administración',

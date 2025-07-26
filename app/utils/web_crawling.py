@@ -169,3 +169,23 @@ def get_url_texts_content(html_text: str, filter_tag: str = None):
     ]
 
     return text_content
+
+
+def split_text_into_sentences(text: str):
+    """
+    Split a text into sentences, removing empty strings and extra spaces.
+    """
+    # Remove multiple spaces and newlines
+    text.replace("\n", " ").replace(r"\s+", " ").strip()
+
+    if text:
+        # Split the texts by . to get individual sentences
+        sentences = [
+            line.replace(r"\s+", " ").strip()
+            for line in text.split(".")
+            if line.replace(r"\s+", " ").strip()
+        ]
+    else:
+        sentences = []
+
+    return sentences

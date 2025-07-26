@@ -48,10 +48,16 @@ const AppLayout = () => {
     }, [fetchRoles]);
 
     const [showAdminSub, setShowAdminSub] = useState(false);
+    const [showAnalyzerSub, setShowAnalyzerSub] = useState(false);
+    const [showManagementSub, setShowManagementSub] = useState(false);
 
     /* helpers para los sub-menú */
     const openAdminSub  = () => setShowAdminSub(true);
     const closeAdminSub = () => setShowAdminSub(false);
+    const openAnalyzerSub  = () => setShowAnalyzerSub(true);
+    const closeAnalyzerSub = () => setShowAnalyzerSub(false);
+    const openManagementSub  = () => setShowManagementSub(true);
+    const closeManagementSub = () => setShowManagementSub(false);
 
     /* ── UI ─────────────────────────────────────────────────────────────────── */
     return (
@@ -65,8 +71,57 @@ const AppLayout = () => {
                     {/* --------- ENLACES PRINCIPALES --------- */}
                     <ul className="nav-links">
                         {SexismDetectionPrivileges ? (
-                          <li><NavLink to="/analiticas"  className="nav-link">Analíticas</NavLink></li>
-                        ): null }
+                          <>
+                            <li><NavLink to="/analiticas"  className="nav-link">Analíticas</NavLink></li>
+
+                            <li
+                              className="nav-item nav-dropdown"
+                              onMouseEnter={openAnalyzerSub}
+                              onMouseLeave={closeAnalyzerSub}
+                            >
+                              <NavLink to="/detector-sexismo"  className="nav-link">
+                                Detector Sexismo ▾
+                              </NavLink>
+
+                              {showAnalyzerSub && (
+                                <ul className="sub-menu">
+                                  <li>
+                                    <NavLink
+                                      to="/detector-sexismo/textos"
+                                      className="nav-sublink"
+                                      onClick={closeAnalyzerSub}
+                                    >
+                                      Textos
+                                    </NavLink>
+                                  </li>
+                                </ul>
+                              )}
+                            </li>
+                            <li
+                              className="nav-item nav-dropdown"
+                              onMouseEnter={openManagementSub}
+                              onMouseLeave={closeManagementSub}
+                            >
+                              <NavLink to="/gestion"  className="nav-link">
+                                Gestión ▾
+                              </NavLink>
+
+                              {showManagementSub && (
+                                <ul className="sub-menu">
+                                  <li>
+                                    <NavLink
+                                      to="/gestion/dominios"
+                                      className="nav-sublink"
+                                      onClick={closeManagementSub}
+                                    >
+                                      Dominios
+                                    </NavLink>
+                                  </li>
+                                </ul>
+                              )}
+                            </li>
+                          </>
+                        ): null}
 
                         {adminPrivileges ? (
                           <li
