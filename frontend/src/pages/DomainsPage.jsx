@@ -1,6 +1,7 @@
 // src/pages/DomainsPage.jsx
 import api from '../functions/api';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from 'react-bootstrap';
 import { useToast } from '../components/ToastProvider';
 import SearchBar from '../components/SearchBar';
@@ -17,6 +18,7 @@ const DomainsPage = () => {
   const btnRefs = useRef({});
   const menuRef = useRef(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const navigate = useNavigate();
 
   // Toast para notificaciones
   const { showSuccess, showError } = useToast();
@@ -188,6 +190,17 @@ const DomainsPage = () => {
                         onEdit={() => openEditModal({ id_domain, domain_url, absolute_url })}
                         onDelete={() => openDeleteModal({ id_domain, domain_url, absolute_url })}
                         onClose={() => setOpenRow(null)}
+                        extraOptions={
+                          <li>
+                            <button
+                              onClick={() => {
+                                navigate(`/gestion/dominios/${id_domain}/urls`);
+                              }}
+                            >
+                              Ver URLs
+                            </button>
+                          </li>
+                        }
                       />
                     )}
                   </td>

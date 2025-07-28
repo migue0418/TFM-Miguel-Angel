@@ -9,6 +9,8 @@ import HomePage from './pages/HomePage';
 import { ProtectedRoute } from './functions/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import DomainsPage from './pages/DomainsPage';
+import DomainUrlsPage from './pages/DomainUrlsPage';
+import UrlDetailPage from './pages/UrlDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import UsersManagement from './pages/UsersManagement';
 import RolesManagement from './pages/RolesManagement';
@@ -35,6 +37,8 @@ export default function AppRoutes() {
             {/* Páginas encuestas */}
             <Route element={<RoleGuard allowedRoles={['sexism_detection', 'admin']} />}>
                 <Route path="gestion/dominios" element={<DomainsPage />} />
+                <Route path="/gestion/dominios/:id_dominio/urls" element={<DomainUrlsPage />} />
+                <Route path="/gestion/dominios/:id_dominio/urls/:id_url" element={<UrlDetailPage />} />
                 <Route path="detector-sexismo/textos" element={<TextSexismAnalyzer />} />
             </Route>
 

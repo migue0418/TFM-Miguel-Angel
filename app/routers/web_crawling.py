@@ -2,7 +2,7 @@ import pandas as pd
 import re
 from fastapi import APIRouter, Depends, HTTPException
 from urllib.parse import urlparse
-
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.core.config import files_path
 from app.database.crud.domain import (
@@ -14,6 +14,7 @@ from app.database.crud.domain import (
 from app.database.crud.url import get_urls, save_url, delete_url, update_url
 from app.database.db_service import DB
 from app.database.db_sqlalchemy import get_db
+from app.database.models.url import URLSexistContent, URL
 from app.schemas.inputs import TextInput
 from app.schemas.web import EditDomain, NewDomain, EditURL, NewURL
 from app.utils.sexism_classification import predict_sexism_text
@@ -399,3 +400,90 @@ async def _update_url(form_data: EditURL):
             status_code=500,
             detail=f"Error updating URL with ID {form_data.id_url}: {str(e)}",
         )
+
+
+@router.get("/domain/{id_dominio}/urls")
+def get_urls_by_domain(id_dominio: int, db: Session = Depends(get_db)):
+    try:
+        # Subquery: media y flag "hay frases sexistas"
+        subq = (
+            db.query(
+                URLSexistContent.id_url,
+                func.avg(URLSexistContent.score_sexist).label("score_sexist_global"),
+                func.max(URLSexistContent.sexist).label("has_sexist_parts"),  # 0/1
+            )
+            .group_by(URLSexistContent.id_url)
+            .subquery()
+        )
+
+        # Join entre urls y subquery
+        results = (
+            db.query(
+                URL.id_url,
+                URL.relative_url,
+                func.coalesce(subq.c.score_sexist_global, 0).label(
+                    "score_sexist_global"
+                ),
+                func.coalesce(subq.c.has_sexist_parts, 0).label("has_sexist_parts"),
+            )
+            .outerjoin(subq, URL.id_url == subq.c.id_url)
+            .filter(URL.id_domain == id_dominio)
+            .all()
+        )
+
+        return [
+            {
+                "id_url": row.id_url,
+                "relative_url": row.relative_url,
+                # porcentual para el frontend
+                "score_sexist_global": round(row.score_sexist_global * 100, 2),
+                # True si max(sexist) = 1
+                "has_sexist_parts": bool(row.has_sexist_parts),
+            }
+            for row in results
+        ]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+
+@router.get("/urls/{id_url}/sexism")
+def get_url_sexism_analysis(id_url: int, db: Session = Depends(get_db)):
+    try:
+        # Obtener la URL
+        url = db.query(URL).filter(URL.id_url == id_url).first()
+        if not url:
+            raise HTTPException(status_code=404, detail="URL no encontrada")
+
+        # Obtener los fragmentos analizados
+        contents = (
+            db.query(URLSexistContent).filter(URLSexistContent.id_url == id_url).all()
+        )
+
+        if not contents:
+            raise HTTPException(
+                status_code=404, detail="No hay análisis asociados a esta URL"
+            )
+
+        # Calcular score medio
+        total_sentences = len(contents)
+        avg_score_sexist = sum(c.score_sexist for c in contents) / total_sentences
+
+        # Construir respuesta
+        return {
+            "absolute_url": url.absolute_url,
+            "global_score": round(avg_score_sexist, 4),
+            "total_sentences": total_sentences,
+            "texts": [
+                {
+                    "content": c.content,
+                    "sexist": bool(c.sexist),
+                    "score_sexist": round(c.score_sexist, 4),
+                    "score_non_sexist": round(c.score_non_sexist, 4),
+                }
+                for c in contents
+            ],
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
