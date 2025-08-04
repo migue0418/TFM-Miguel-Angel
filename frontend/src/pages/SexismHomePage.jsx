@@ -1,4 +1,4 @@
-// src/pages/HomePage.jsx
+// src/pages/SexismHomePage.jsx
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Row, Col } from 'react-bootstrap';
@@ -6,7 +6,7 @@ import { getRoles } from '../functions/authUtils';
 import { useToast } from '../components/ToastProvider';
 import '../styles/HomeDashboard.css';
 
-export default function HomePage() {
+export default function SexismHomePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { showError } = useToast();
@@ -16,32 +16,25 @@ export default function HomePage() {
   /** Tarjetas visibles según rol */
   const tiles = [
     {
-        title: 'Detector de Sexismo',
-        text: 'Analiza textos y detecta lenguaje sexista.',
-        icon: 'bi-people',
-        to: '/detector-sexismo',
+        title: 'Textos',
+        text: 'Analiza un texto y detecta lenguaje sexista.',
+        icon: 'bi-file-text',
+        to: 'textos',
         role: 'sexism_detection'
     },
     {
-        title: 'Analíticas',
-        text: 'Visualiza estadísticas y métricas.',
-        icon: 'bi-people',
-        to: '/analiticas',
+        title: 'URLs',
+        text: 'Analiza una URL y detecta lenguaje sexista.',
+        icon: 'bi-filetype-html',
+        to: 'urls',
         role: 'sexism_detection'
     },
     {
-        title: 'Panel Administración',
-        text: 'Usuarios, roles y configuraciones.',
-        icon: 'bi-shield-lock',
-        to: '/admin',
-        role: 'admin'
-    },
-    {
-        title: 'Trabajo Fin de Máster',
-        text: '(PDF)',
-        icon: 'bi-file-earmark-text',
-        to: '/manual',
-        role: 'all'
+        title: 'Dominios',
+        text: 'Analiza un dominio y detecta lenguaje sexista.',
+        icon: 'bi-globe',
+        to: 'dominios',
+        role: 'sexism_detection'
     }
   ];
 
@@ -58,7 +51,7 @@ export default function HomePage() {
 
   return (
     <section className="container py-4">
-      <h1 className="title mb-4">Panel principal</h1>
+      <h1 className="title mb-4">Detector de Sexismo</h1>
 
       <Row xs={1} md={2} lg={3} className="g-4">
         {visibles.map(({ title, text, icon, to }) => (

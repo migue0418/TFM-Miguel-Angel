@@ -6,6 +6,8 @@ import {
 
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import AnalyticsHomePage from './pages/AnalyticsHomePage';
+import SexismHomePage from './pages/SexismHomePage';
 import { ProtectedRoute } from './functions/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import DomainsPage from './pages/DomainsPage';
@@ -36,9 +38,12 @@ export default function AppRoutes() {
 
             {/* Páginas encuestas */}
             <Route element={<RoleGuard allowedRoles={['sexism_detection', 'admin']} />}>
-                <Route path="gestion/dominios" element={<DomainsPage />} />
-                <Route path="/gestion/dominios/:id_dominio/urls" element={<DomainUrlsPage />} />
-                <Route path="/gestion/dominios/:id_dominio/urls/:id_url" element={<UrlDetailPage />} />
+                <Route path="analiticas" element={<AnalyticsHomePage />} />
+                <Route path="analiticas/dominios" element={<DomainsPage />} />
+                <Route path="analiticas/dominios/:id_dominio/urls" element={<DomainUrlsPage />} />
+                <Route path="analiticas/dominios/:id_dominio/urls/:id_url" element={<UrlDetailPage />} />
+
+                <Route path="detector-sexismo" element={<SexismHomePage />} />
                 <Route path="detector-sexismo/textos" element={<TextSexismAnalyzer />} />
             </Route>
 
@@ -47,8 +52,8 @@ export default function AppRoutes() {
 
             {/* Sólo puede entrar si tiene el rol admin */}
             <Route element={<RoleGuard allowedRoles="admin" />}>
-                <Route path="admin"           element={<UsersManagement />} />
-                <Route path="admin/roles"     element={<RolesManagement />} />
+                <Route path="admin" element={<UsersManagement />} />
+                <Route path="admin/roles" element={<RolesManagement />} />
             </Route>
         </Route>
 

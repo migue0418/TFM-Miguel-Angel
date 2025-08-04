@@ -72,7 +72,6 @@ const AppLayout = () => {
                     <ul className="nav-links">
                         {SexismDetectionPrivileges ? (
                           <>
-                            <li><NavLink to="/analiticas"  className="nav-link">Analíticas</NavLink></li>
 
                             <li
                               className="nav-item nav-dropdown"
@@ -94,6 +93,24 @@ const AppLayout = () => {
                                       Textos
                                     </NavLink>
                                   </li>
+                                  <li>
+                                    <NavLink
+                                      to="/detector-sexismo/urls"
+                                      className="nav-sublink"
+                                      onClick={closeAnalyzerSub}
+                                    >
+                                      URLs
+                                    </NavLink>
+                                  </li>
+                                  <li>
+                                    <NavLink
+                                      to="/detector-sexismo/dominios"
+                                      className="nav-sublink"
+                                      onClick={closeAnalyzerSub}
+                                    >
+                                      Dominios
+                                    </NavLink>
+                                  </li>
                                 </ul>
                               )}
                             </li>
@@ -102,19 +119,28 @@ const AppLayout = () => {
                               onMouseEnter={openManagementSub}
                               onMouseLeave={closeManagementSub}
                             >
-                              <NavLink to="/gestion"  className="nav-link">
-                                Gestión ▾
+                              <NavLink to="/analiticas"  className="nav-link">
+                                Analíticas ▾
                               </NavLink>
 
                               {showManagementSub && (
                                 <ul className="sub-menu">
                                   <li>
                                     <NavLink
-                                      to="/gestion/dominios"
+                                      to="/analiticas/dominios"
                                       className="nav-sublink"
                                       onClick={closeManagementSub}
                                     >
                                       Dominios
+                                    </NavLink>
+                                  </li>
+                                  <li>
+                                    <NavLink
+                                      to="/analiticas/global"
+                                      className="nav-sublink"
+                                      onClick={closeManagementSub}
+                                    >
+                                      Global
                                     </NavLink>
                                   </li>
                                 </ul>
