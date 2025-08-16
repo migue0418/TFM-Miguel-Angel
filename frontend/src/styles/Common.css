@@ -231,3 +231,7 @@ a.primary-link:hover {
 .card {
   border: none;
 }
+
+.red {
+  color: #dc2626;
+}

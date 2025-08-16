@@ -18,6 +18,9 @@ import UsersManagement from './pages/UsersManagement';
 import RolesManagement from './pages/RolesManagement';
 import RoleGuard from './functions/RoleGuard';
 import TextSexismAnalyzer from './pages/TextSexismAnalyzerPage';
+import UrlSexismAnalyzerPage from './pages/UrlSexismAnalyzerPage';
+import DomainSexismAnalyzerPage from './pages/DomainSexismAnalyzerPage';
+import Dashboard from './pages/Dashboard';
 
 export default function AppRoutes() {
     return (
@@ -39,12 +42,15 @@ export default function AppRoutes() {
             {/* Páginas encuestas */}
             <Route element={<RoleGuard allowedRoles={['sexism_detection', 'admin']} />}>
                 <Route path="analiticas" element={<AnalyticsHomePage />} />
+                <Route path="analiticas/global" element={<Dashboard />} />
                 <Route path="analiticas/dominios" element={<DomainsPage />} />
                 <Route path="analiticas/dominios/:id_dominio/urls" element={<DomainUrlsPage />} />
                 <Route path="analiticas/dominios/:id_dominio/urls/:id_url" element={<UrlDetailPage />} />
 
                 <Route path="detector-sexismo" element={<SexismHomePage />} />
                 <Route path="detector-sexismo/textos" element={<TextSexismAnalyzer />} />
+                <Route path="detector-sexismo/urls" element={<UrlSexismAnalyzerPage />} />
+                <Route path="detector-sexismo/dominios" element={<DomainSexismAnalyzerPage />} />
             </Route>
 
             {/* Página perfil */}

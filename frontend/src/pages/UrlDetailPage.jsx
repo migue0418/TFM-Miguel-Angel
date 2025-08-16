@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Form, Spinner, Dropdown } from 'react-bootstrap';
-import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts';
+import SexismPieChart from '../components/SexismPieChart';
+import { getPredictionStyle } from '../functions/utils';
 import api from '../functions/api';
 import { useToast } from '../components/ToastProvider';
 import '../styles/Common.css';
@@ -34,13 +35,7 @@ const UrlDetailPage = () => {
     fetchData();
   }, [fetchData]);
 
-  const getStatusStyle = (score) => {
-    if (score > 0.65) return { color: 'red', fontWeight: 'bold' };
-    if (score >= 0.35) return { color: '#555', fontWeight: 'bold' };
-    return { color: 'green', fontWeight: 'bold' };
-  };
-
-  const getStatusText = (score) => (score > 0.5 ? 'Sexista' : 'No sexista');
+  const getStatusText = (score) => (score > 0.5 ? 'sexist' : 'not sexist');
 
   const filteredTexts =
     data?.texts.filter((t) => {
@@ -49,38 +44,6 @@ const UrlDetailPage = () => {
       if (filter === 'no-sexista') return contentMatch && !t.sexist;
       return contentMatch;
     }) || [];
-
-  const renderSexismChart = (percentage) => {
-    const chartData = [
-      { name: 'Sexista', value: percentage },
-      { name: 'No sexista', value: 100 - percentage },
-    ];
-    const COLORS = ['#dc3545', '#ccc'];
-
-    return (
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
-          <Pie
-            data={chartData}
-            innerRadius={70}
-            outerRadius={90}
-            dataKey="value"
-            startAngle={90}
-            endAngle={-270}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index]} />
-            ))}
-            <Label
-              value={percentage >= 50 ? 'Sexista' : 'No Sexista'}
-              position="center"
-              style={{ fontSize: '1rem', fontWeight: 'bold' }}
-            />
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-    );
-  };
 
   return (
     <section className="url-detail-section">
@@ -100,13 +63,10 @@ const UrlDetailPage = () => {
                     {data.absolute_url}
                   </a>
                 </p>
-                {renderSexismChart(data.global_score * 100)}
+                {SexismPieChart(data.global_score * 100)}
                 <p className="mt-3">
-                  Se ha detectado sexismo en{' '}
-                  <strong>{(data.global_score * 100).toFixed(2)}%</strong> del contenido.
-                  Esto corresponde a{' '}
-                  <strong>{Math.round(data.global_score * data.total_sentences)}</strong> frases de un total de{' '}
-                  <strong>{data.total_sentences}</strong>.
+                  Se ha detectado <strong><span className='red'>sexismo</span></strong> en <strong>{(data.global_score * 100).toFixed(2)}%</strong> del contenido.
+                  Esto corresponde a <strong>{Math.round(data.global_score * data.total_sentences)}</strong> frases de un total de <strong>{data.total_sentences}</strong>.
                 </p>
               </Card.Body>
             </Card>
@@ -143,7 +103,7 @@ const UrlDetailPage = () => {
                         </p>
                         <p>
                           <strong>Predicción:</strong>{' '}
-                          <span style={getStatusStyle(t.score_sexist)}>
+                          <span style={getPredictionStyle(getStatusText(t.score_sexist), (t.score_sexist * 100).toFixed(2))}>
                             {getStatusText(t.score_sexist)}
                           </span>
                         </p>

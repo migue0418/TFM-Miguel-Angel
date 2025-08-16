@@ -144,7 +144,7 @@ const DomainUrlsPage = () => {
               {currentUrls.map(({ id_url, relative_url, score_sexist_global }, idx) => (
                 <tr key={idx}>
                   <td>
-                    <Link to={`/gestion/dominios/${id_dominio}/urls/${id_url}`} className="link-dark">
+                    <Link to={`/analiticas/dominios/${id_dominio}/urls/${id_url}`} className="link-dark">
                       {relative_url}
                     </Link>
                   </td>

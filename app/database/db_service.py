@@ -1,5 +1,7 @@
 from typing import Any, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func, select, desc
+from datetime import date
 from datetime import datetime
 from app.database.models.domain import Domain
 from app.database.models.url import URL, URLSexistContent
@@ -95,3 +97,95 @@ class DB:
             self.db.commit()
             self.db.refresh(row)
         return row
+
+    def get_overview(self, from_date: date | None = None, to_date: date | None = None):
+        """
+        Devuelve (total_urls, total_sentences, global_sexism_percentage)
+        """
+        # Filtro de rango de fechas (se asume URL.created_at existe)
+        url_filter = []
+        if from_date:
+            url_filter.append(URL.created_at >= from_date)
+        if to_date:
+            url_filter.append(URL.created_at <= to_date)
+
+        # Query de URLs
+        total_urls = self.db.scalar(
+            select(func.count()).select_from(URL).where(*url_filter)
+        )
+
+        # Sentencias unidas a URLs dentro del rango
+        sent_query = select(URLSexistContent).join(
+            URL, URLSexistContent.id_url == URL.id_url
+        )
+        if url_filter:
+            sent_query = sent_query.where(*url_filter)
+
+        total_sentences = self.db.scalar(
+            select(func.count()).select_from(sent_query.subquery())
+        )
+
+        sexist_sentences_q = (
+            select(func.count())
+            .select_from(URLSexistContent)
+            .join(URL, URLSexistContent.id_url == URL.id_url)
+            .where(*url_filter, URLSexistContent.sexist == 1)
+        )
+        sexist_sentences = self.db.scalar(sexist_sentences_q)
+
+        percentage = (
+            (sexist_sentences / total_sentences) * 100 if total_sentences else 0.0
+        )
+
+        return (
+            total_urls or 0,
+            total_sentences or 0,
+            sexist_sentences,
+            round(percentage, 2),
+        )
+
+    def get_top_sentences(self, limit: int = 5):
+        """
+        Devuelve una lista de dicts [{text, score_sexist, url_id?, created_at?}, ...]
+        ordenada por score_sexist DESC.
+        """
+        stmt = (
+            select(
+                URLSexistContent.content,
+                URLSexistContent.score_sexist,
+            )
+            .where(URLSexistContent.sexist == 1)
+            .order_by(desc(URLSexistContent.score_sexist))
+            .limit(limit)
+        )
+
+        rows = self.db.execute(stmt).all()
+
+        return [
+            {"text": r.content, "score_sexist": float(r.score_sexist)} for r in rows
+        ]
+
+    def get_severity_histogram(self, bins: int = 5):
+        """
+        Devuelve lista [{range: '0-0.2', count: 123}, ...] con 'bins' intervalos
+        equiespaciados en [0,1].
+        """
+        # floor(score * bins) → índice de bin (0 … bins-1)
+        bin_index = func.floor(URLSexistContent.score_sexist * bins)
+
+        stmt = select(bin_index.label("bin"), func.count().label("count")).group_by(
+            "bin"
+        )
+
+        counts = {int(b): c for b, c in self.db.execute(stmt).all()}
+
+        # Formateo uniforme de los bins (incluso vacíos)
+        hist = []
+        step = 1 / bins
+        for i in range(bins):
+            low = round(i * step, 2)
+            high = round((i + 1) * step, 2)
+            label = f"{low:.1f}-{high:.1f}"
+            hist.append({"range": label, "count": counts.get(i, 0)})
+
+        return hist

@@ -1,10 +1,8 @@
-import pandas as pd
-import re
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from urllib.parse import urlparse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.core.config import files_path
 from app.database.crud.domain import (
     get_domains,
     save_domain,
@@ -13,9 +11,9 @@ from app.database.crud.domain import (
 )
 from app.database.crud.url import get_urls, save_url, delete_url, update_url
 from app.database.db_service import DB
-from app.database.db_sqlalchemy import get_db
+from app.database.db_sqlalchemy import get_db, SessionLocal
 from app.database.models.url import URLSexistContent, URL
-from app.schemas.inputs import TextInput
+from app.schemas.inputs import DomainAnalyzerInput, TextInput, URLCheckerInput
 from app.schemas.web import EditDomain, NewDomain, EditURL, NewURL
 from app.utils.sexism_classification import predict_sexism_text
 from app.utils.web_crawling import (
@@ -32,12 +30,32 @@ router = APIRouter(
 )
 
 
+# Wrapper para ejecutar en background con su propia sesión
+def run_check_urls_not_checked(absolute_domain: str) -> None:
+    db_bg = SessionLocal()
+    try:
+        # Llama a tu función real que procesa las URLs pendientes
+        check_urls_not_checked(domain=absolute_domain, db=db_bg)
+    except Exception as e:
+        # Aquí puedes loguear el error si quieres
+        print(f"[BG] Error en check_urls_not_checked({absolute_domain}): {e}")
+    finally:
+        db_bg.close()
+
+
 @router.post("/sitemap/get-urls")
-def save_english_urls_from_sitemap_domain(domain: str, db: Session = Depends(get_db)):
+def save_english_urls_from_sitemap_domain(
+    form_data: DomainAnalyzerInput,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """
     Get a list of the English urls from a domain sitemap and save it in the database
     """
     try:
+        domain = form_data.domain.strip()
+        if not domain:
+            raise HTTPException(status_code=400, detail="Domain cannot be empty")
         # Instancia la base de datos
         db_manager = DB(db)
 
@@ -59,7 +77,7 @@ def save_english_urls_from_sitemap_domain(domain: str, db: Session = Depends(get
         sitemaps_urls = get_sitemaps_from_domain(absolute_domain)
 
         # Get the English urls from the sitemaps
-        all_urls, all_sitemaps = get_all_urls_and_sitemaps(sitemaps_urls)
+        sitemaps, all_urls = get_all_urls_and_sitemaps(sitemaps_urls)
 
         # Parse the set urls into a list
         all_urls = list(all_urls)
@@ -69,22 +87,13 @@ def save_english_urls_from_sitemap_domain(domain: str, db: Session = Depends(get
             # Add it to the database if not already there
             db_manager.save_url(domain_instance, url)
 
-        # Save the urls in a csv file using pandas
-        df = pd.DataFrame(all_urls, columns=["url"])
-
-        # Save the csv file in the correct folder
-        output_csv_path = (
-            files_path
-            / "domain_urls"
-            / f"{re.sub(r"^https?://", "", domain).replace('.', '_')}_english_urls.csv"
-        )
-        df.to_csv(output_csv_path, index=False)
+        # Mandamos a background la tarea de ejecutar los sitemaps
+        background_tasks.add_task(run_check_urls_not_checked, absolute_domain)
 
         return {
-            "message": (
-                f"Found {len(all_urls)} English urls from the domain ",
-                f"{domain} in {len(all_sitemaps)} sitemaps",
-            )
+            "id_domain": domain_instance.id_domain,
+            "domain": domain_instance.domain_url,
+            "sitemaps": sitemaps,
         }
 
     except Exception as e:
@@ -165,19 +174,19 @@ def check_urls_not_checked(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/url/check-sexism")
-def check_sexism_in_url(
-    url: str, filter_tag: str = None, db: Session = Depends(get_db)
-):
+@router.post("/url/check-sexism")
+def check_sexism_in_url(form_data: URLCheckerInput, db: Session = Depends(get_db)):
     """
-    Get a list of the English urls from a domain sitemap saved in the database
+    Check sexism in a URL and save the results in the database.
+    If the URL is not valid or the content is not accessible, it raises an HTTPException.
+    If the URL has already been checked, it returns the existing results.
     """
     try:
         # Instancia la base de datos
         db_manager = DB(db)
 
         # Parseamos la url para asegurarnos de que es válida
-        parsed_url = urlparse(url)
+        parsed_url = urlparse(form_data.url)
         domain = parsed_url.netloc
         if not domain:
             raise HTTPException(status_code=400, detail="Invalid URL provided")
@@ -188,17 +197,19 @@ def check_sexism_in_url(
         )
 
         # Obtenemos el contenido
-        content = get_url_html_content(url)
+        content = get_url_html_content(form_data.url)
         if not content:
             raise HTTPException(
                 status_code=404, detail="Content not found or inaccessible"
             )
 
         # Comprobamos si la URL ya está en la base de datos
-        url_instance = db_manager.save_url(domain, url, content)
+        url_instance = db_manager.save_url(domain, form_data.url, content)
 
         # Obtenemos el texto de la URL usando BeautifulSoup
-        texts = get_url_texts_content(html_text=content, filter_tag=filter_tag)
+        texts = get_url_texts_content(
+            html_text=content, filter_tag=form_data.filter_tag
+        )
         if not texts:
             raise HTTPException(
                 status_code=404, detail="No text content found in the URL"
@@ -211,7 +222,19 @@ def check_sexism_in_url(
             # Guardamos el contenido sexista en la base de datos
             db_manager.save_url_sexist_content(url_instance, result)
 
-        return results
+        total_texts = len(texts)
+        sexist_texts = sum(1 for r in results if r["pred"] == "sexist")
+        sexism_percentage = (sexist_texts / total_texts) * 100 if total_texts else 0
+
+        response = {
+            "global": {
+                "is_sexist": sexist_texts >= (total_texts - sexist_texts),
+                "sexism_percentage": sexism_percentage,
+                "total_texts": total_texts,
+            },
+            "texts": results,
+        }
+        return response
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -487,3 +510,69 @@ def get_url_sexism_analysis(id_url: int, db: Session = Depends(get_db)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+
+@router.get("/analytics/overview")
+def analytics_overview(
+    from_date: date | None = None,
+    to_date: date | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Devuelve:
+      {
+        total_urls: 123,
+        total_sentences: 4567,
+        global_sexism_percentage: 23.4        # 0-100
+      }
+    """
+    try:
+        dbm = DB(db)
+        urls, sentences, sexist_sentences, pct = dbm.get_overview(from_date, to_date)
+        return {
+            "total_urls": urls,
+            "total_sentences": sentences,
+            "sexist_sentences": sexist_sentences,
+            "global_sexism_percentage": pct,
+        }
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
+
+
+@router.get("/analytics/top-sexist-sentences")
+def top_sexist_sentences(
+    limit: int = 5,
+    db: Session = Depends(get_db),
+):
+    """
+    Devuelve:
+      { sentences: [ { text, score_sexist }, ... ] }
+    """
+    try:
+        dbm = DB(db)
+        top = dbm.get_top_sentences(limit=limit)  # ordered by score_sexist DESC
+        return {"sentences": top}
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
+
+
+@router.get("/analytics/severity-distribution")
+def severity_distribution(
+    bins: int = 5,
+    db: Session = Depends(get_db),
+):
+    """
+    Devuelve:
+      {
+        bins: [
+          { range: \"0-0.2\", count: 123 },
+          { range: \"0.2-0.4\", count: 234 }, ...
+        ]
+      }
+    """
+    try:
+        dbm = DB(db)
+        dist = dbm.get_severity_histogram(bins=bins)
+        return {"bins": dist}
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))

@@ -194,7 +194,7 @@ const DomainsPage = () => {
                           <li>
                             <button
                               onClick={() => {
-                                navigate(`/gestion/dominios/${id_domain}/urls`);
+                                navigate(`/analiticas/dominios/${id_domain}/urls`);
                               }}
                             >
                               Ver URLs

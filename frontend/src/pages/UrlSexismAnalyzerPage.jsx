@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Form, Button, Card, Spinner } from 'react-bootstrap';
 import SexismPieChart from '../components/SexismPieChart';
-import { getPredictionStyle } from '../functions/utils';
 import api from '../functions/api';
 import { useToast } from '../components/ToastProvider';
 import '../styles/Common.css';
 
-const TextSexismAnalyzer = () => {
+
+const UrlSexismAnalyzerPage = () => {
   const { showError } = useToast();
-  const [text, setText] = useState('');
+  const [url, setUrl] = useState('');
+  const [filterTag, setFilterTag] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -20,8 +21,11 @@ const TextSexismAnalyzer = () => {
     try {
       const token = localStorage.getItem('access_token');
       const response = await api.post(
-        '/web-crawling/text/check-sexism',
-        { text },
+        '/web-crawling/url/check-sexism',
+        {
+          url,
+          filter_tag: filterTag || null,
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -30,30 +34,48 @@ const TextSexismAnalyzer = () => {
       );
       setResult(response.data);
     } catch (error) {
-      console.error('Error analizando el texto:', error);
-      showError('No se pudo analizar el texto');
+      console.error('Error analizando la URL:', error);
+      showError('No se pudo analizar la URL');
     } finally {
       setLoading(false);
     }
   };
 
+  const getPredictionStyle = (pred, scoreSexist) => {
+    if (pred === 'not sexist' && scoreSexist < 0.35) return { color: 'green', fontWeight: 'bold' };
+    if (scoreSexist >= 0.35 && scoreSexist <= 0.65) return { color: '#555', fontWeight: 'bold' };
+    if (pred === 'sexist' && scoreSexist > 0.65) return { color: 'red', fontWeight: 'bold' };
+    return { fontWeight: 'bold' };
+  };
+
   return (
     <section className="analyze-text-section">
-      <h1 className="title">Detector de Sexismo en Texto</h1>
+      <h1 className="title">Detector de Sexismo en URL</h1>
 
       <Form onSubmit={handleSubmit} className="mb-4">
         <Form.Group className="mb-3">
-          <Form.Label>Introduce el texto completo</Form.Label>
+          <Form.Label>Introduce la URL absoluta</Form.Label>
           <Form.Control
-            as="textarea"
-            rows={6}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            type="url"
+            placeholder="https://ejemplo.com/articulo"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
             required
           />
         </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Etiqueta HTML (opcional)</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="article, p, div…"
+            value={filterTag}
+            onChange={(e) => setFilterTag(e.target.value)}
+          />
+        </Form.Group>
+
         <Button type="submit" className="btn-dark" disabled={loading}>
-          {loading ? <Spinner size="sm" animation="border" /> : 'Analizar Texto'}
+          {loading ? <Spinner size="sm" animation="border" /> : 'Analizar URL'}
         </Button>
       </Form>
 
@@ -64,7 +86,7 @@ const TextSexismAnalyzer = () => {
               <h5>Análisis Global</h5>
               {SexismPieChart(result.global.sexism_percentage)}
               <p className="mt-3">
-                Se ha detectado <strong><span className='red'>sexismo</span></strong> en <strong>{result.global.sexism_percentage.toFixed(1)}%</strong> del texto.
+                Se ha detectado <strong><span className='red'>sexismo</span></strong> en <strong>{result.global.sexism_percentage.toFixed(1)}%</strong> del contenido.
                 Esto corresponde a <strong>{Math.round((result.global.sexism_percentage / 100) * result.global.total_texts)}</strong> frases de un total de <strong>{result.global.total_texts}</strong>.
               </p>
             </Card.Body>
@@ -96,4 +118,4 @@ const TextSexismAnalyzer = () => {
   );
 };
 
-export default TextSexismAnalyzer;
+export default UrlSexismAnalyzerPage;

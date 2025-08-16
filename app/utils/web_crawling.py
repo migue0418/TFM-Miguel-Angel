@@ -84,6 +84,7 @@ def get_all_urls_and_sitemaps(initial_sitemaps):
     all_urls = set()
     processed_sitemaps = set()
     pending_sitemaps = set(initial_sitemaps)
+    results = []
 
     while pending_sitemaps:
         current_sitemap = pending_sitemaps.pop()
@@ -91,16 +92,22 @@ def get_all_urls_and_sitemaps(initial_sitemaps):
             continue
 
         print(f"Procesando: {current_sitemap}")
+        sitemap_results = {
+            "url_sitemap": current_sitemap,
+            "urls": [],
+        }
         content = fetch_sitemap_content(current_sitemap)
         if not content:
             continue
 
         urls, sub_sitemaps = parse_sitemap(content)
+        sitemap_results["urls"] = urls
+        results.append(sitemap_results)
         all_urls.update(urls)
         pending_sitemaps.update(sub_sitemaps)
         processed_sitemaps.add(current_sitemap)
 
-    return all_urls, processed_sitemaps
+    return results, all_urls
 
 
 def get_english_urls_from_sitemap(sitemap_url: str):
