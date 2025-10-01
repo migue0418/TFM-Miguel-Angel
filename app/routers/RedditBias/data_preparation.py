@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import ValidationError
 from typing import Literal
 
-from app.utils.redditbias_preprocessing import (
+from app.utils.redditbias.redditbias_preprocessing import (
     get_raw_reddit_comments,
     reddit_data_phrases,
     reddit_data_phrases_replace_attribute,

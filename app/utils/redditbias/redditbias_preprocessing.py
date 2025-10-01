@@ -7,8 +7,8 @@ import re
 from sklearn.model_selection import train_test_split
 from app.external_services.reddit_client import get_reddit_client
 from app.schemas.redditbias import Topic
-from app.utils.reddit_fetcher import fetch_comments_by_query
-from app.utils.redditbias_original_functions import (
+from app.utils.redditbias.reddit_fetcher import fetch_comments_by_query
+from app.utils.redditbias.redditbias_original_functions import (
     build_dataset_manual_annot,
     process_tweet,
 )

@@ -12,7 +12,10 @@ from app.core.config import (
     redditbias_data_path as data_path,
     redditbias_execution_logs_path as exp_path,
 )
-from app.utils.redditbias_original_functions import find_anomalies, get_perplexity_list
+from app.utils.redditbias.redditbias_original_functions import (
+    find_anomalies,
+    get_perplexity_list,
+)
 
 
 def redditbias_measure_bias(

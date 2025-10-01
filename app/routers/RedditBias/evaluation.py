@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import ValidationError
 from typing import Literal
 
-from app.utils.reddibias_evaluation import (
+from app.utils.redditbias.reddibias_evaluation import (
     reddit_measure_bias_attribute_swap,
     redditbias_measure_bias,
 )
