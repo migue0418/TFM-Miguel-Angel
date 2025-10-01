@@ -9,7 +9,6 @@ const NewUserForm = ({
 }) => {
   const { showSuccess, showError } = useToast();
 
-  /* ---------- state ---------- */
   const [rolesCatalog, setRolesCatalog] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,7 +31,6 @@ const NewUserForm = ({
   const handleChange = ({ target: { name, value } }) =>
     setFormData(prev => ({ ...prev, [name]: value }));
 
-  /* --------------- load roles ---------------- */
   useEffect(() => {
     if (!show) return;                   // evita peticiones si el modal está cerrado
     const fetchRoles = async () => {
@@ -53,11 +51,10 @@ const NewUserForm = ({
     fetchRoles();
   }, [show, showError]);
 
-  /* ---------- submit ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    /* --- 1. construimos el JSON final --- */
+    /* Construimos el JSON final */
     const payload = {
       nombre: formData.nombre,
       username: formData.username,
@@ -79,7 +76,6 @@ const NewUserForm = ({
     }
   };
 
-  /* ---------- render ---------- */
   return (
     <Modal
       show={show}
@@ -161,7 +157,6 @@ const NewUserForm = ({
             )}
           </Form.Group>
 
-          {/* ---------- botón ---------- */}
           <div className="d-grid mt-4">
             <Button variant="primary" type="submit" className="btn-dark">
               Crear Usuario

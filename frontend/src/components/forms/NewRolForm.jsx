@@ -10,7 +10,6 @@ const NewRolForm = ({
 }) => {
   const { showError } = useToast();
 
-  /* ---------- state ---------- */
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
@@ -21,7 +20,6 @@ const NewRolForm = ({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  /* ---------- submit ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -41,7 +39,6 @@ const NewRolForm = ({
     }
   };
 
-  /* ---------- render ---------- */
   return (
     <Modal
       show={show}
@@ -77,7 +74,6 @@ const NewRolForm = ({
             />
           </Form.Group>
 
-          {/* ---------- botón ---------- */}
           <div className="d-grid">
             <Button variant="primary" type="submit" className="btn-dark">
               Crear Rol

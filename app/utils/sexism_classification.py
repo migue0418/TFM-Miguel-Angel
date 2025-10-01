@@ -405,23 +405,6 @@ def train_model_4_labels(dataset: DatasetEnum, model_name: ModelsEnum):
     print(f"id2label: {model.config.id2label}")
 
 
-# """
-# Modelo y tokenizador guardados en app/models/bias_classifier\edos_4_sexism_reduced\ModernBERT-base
-# label2id: {'not sexist': 0, 'sexist': 1, 'sexist (high confidence)': 2, 'sexist (low confidence)': 3}
-# id2label: {0: 'not sexist', 1: 'sexist', 2: 'sexist (high confidence)', 3: 'sexist (low confidence)'}
-
-
-# Valores de test con el de 4 etiqutas y el de 2 en el evaluate. Para ver cuanto te aciertas y equivocas en cada uno.
-
-# Poner que modelos probamos y que funcionó, darle una vuelta a la presentación.
-# Learning rate
-# Batch size
-# Steps
-
-# Probar otro modelo aparte de bert
-# """
-
-
 def parse_llm_output(full_prompt: str, generated_text: str) -> str:
     """
     Elimina la parte del prompt y devuelve la parte generada por el modelo.

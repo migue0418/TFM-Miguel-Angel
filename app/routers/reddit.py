@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.external_services.reddit_client import get_reddit_client
-from app.utils.reddit_fetcher import fetch_submission_data
-from app.utils.reddit_fetcher import fetch_submissions_by_topic
+from app.utils.redditbias.reddit_fetcher import fetch_submission_data
+from app.utils.redditbias.reddit_fetcher import fetch_submissions_by_topic
 from app.schemas.reddit import Submission
 from typing import List
 
@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 
-@router.get("/reddit/topic/{topic}", response_model=List[Submission])
+@router.get("/reddit/topic/{topic}", response_model=List[Submission], deprecated=True)
 def get_submissions_by_topic(topic: str, limit: int = 10):
     try:
         reddit_client = get_reddit_client(user_agent="get_reddit_posts")
@@ -27,6 +27,7 @@ def get_submissions_by_topic(topic: str, limit: int = 10):
     "/reddit/{submission_id}",
     response_model=Submission,
     summary="Obtiene la información de un submission específico",
+    deprecated=True,
 )
 def get_submission(submission_id: str):
     try:

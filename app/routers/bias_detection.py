@@ -382,52 +382,7 @@ def evaluate_metrics_in_test(dataset: DatasetEnum, model: ModelsEnum):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/tmp/consensus-mixed-fix")
-def tmp_consensus_mixed_fix(
-    dataset: DatasetEnum,
-    model: ModelsEnum,
-    consensus: Literal["all_sexist", "all_not_sexist", "mixed"],
-):
-    """
-    Arregla el archivo de consenso mixed cogiendo el valor label del archivo
-    app/files/edos_labelled_aggregated.csv
-    """
-    try:
-        # Obtiene el archivo de consenso mixed
-        mixed_consensus_path = files_path / f"edos_labelled_{consensus}.csv"
-
-        # Carga el dataframe
-        mixed_consensus_df = pd.read_csv(mixed_consensus_path)
-
-        # Obtiene el archivo de consenso agregado
-        aggregated_consensus_path = files_path / "edos_labelled_aggregated.csv"
-
-        # Carga el dataframe
-        aggregated_consensus_df = pd.read_csv(aggregated_consensus_path)
-
-        # Reemplaza la columna label_sexist del dataframe de consensus por la
-        # del aggregated haciendo join por rewire_id
-        mixed_consensus_df = mixed_consensus_df.merge(
-            aggregated_consensus_df[["rewire_id", "label_sexist"]],
-            on="rewire_id",
-            how="left",
-        )
-
-        # Renombra la columna label_sexist_x a label_sexist y elimina label_sexist_y
-        mixed_consensus_df = mixed_consensus_df.rename(
-            columns={"label_sexist_x": "label_sexist"}
-        )
-        mixed_consensus_df = mixed_consensus_df.drop(columns=["label_sexist_y"])
-
-        # Guarda el archivo
-        mixed_consensus_df.to_csv(mixed_consensus_path, index=False)
-
-        return {"message": "The consensus datasets have been generated"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-
-@router.post("/detection/train-model/{topic}")
+@router.post("/detection/train-model/{topic}", deprecated=True)
 def train_bias_detection_model_from_topic(
     edos: bool = False,
     topic: Literal["gender", "race", "orientation", "religion1", "religion2"] = None,
@@ -457,7 +412,7 @@ def train_bias_detection_model_from_topic(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.post("/prediction/{topic}")
+@router.post("/prediction/{topic}", deprecated=True)
 def bias_prediction_from_topic(
     topic: Literal["gender", "race", "orientation", "religion1", "religion2"],
     text: str,
@@ -484,7 +439,7 @@ def bias_prediction_from_topic(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/prediction/detect-files-bias")
+@router.get("/prediction/detect-files-bias", deprecated=True)
 def bias_prediction_detect_files_bias():
     """
     Detect bias in files phrases and get a comparative of each model
@@ -548,7 +503,7 @@ def bias_prediction_detect_files_bias():
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/prediction/detect-text-bias")
+@router.get("/prediction/detect-text-bias", deprecated=True)
 def bias_prediction_detect_text_bias(text: str, text_score: float = None):
     """
     Detect bias in text and divide it in phrases for detecting. Get a comparative of each model
@@ -635,83 +590,5 @@ def bias_prediction_detect_text_bias(text: str, text_score: float = None):
 
         return results
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-
-@router.post("/tmp/clean-results-and-merge")
-def clean_results_and_merge(
-    bert_base_csv: UploadFile = File(...),
-    moder_bert_csv: UploadFile = File(...),
-):
-    """
-    Limpia y recoge los resultados de los csvs de los modelos y los junta en uno solo
-    """
-    try:
-        # Creamos dataset de bert_base
-        bert_base_df = pd.read_csv(bert_base_csv.file)
-
-        # Creamos dataset de modern_bert
-        modern_bert_df = pd.read_csv(moder_bert_csv.file)
-
-        # Limpiamos los resultados de los csvs
-        # Primero nos quedamos solo con los que pertenezcan al bert_base_uncased
-        bert_base_df = bert_base_df[bert_base_df["model_name"] == "bert-base-uncased"]
-
-        # Hacemos lo mismo con modern_bert
-        modern_bert_df = modern_bert_df[
-            modern_bert_df["model_name"] == "answerdotai/ModernBERT-base"
-        ]
-
-        # Obtenemos un ranking de los 5 mejores resultados de cada modelo
-        bert_base_top_5 = bert_base_df.nlargest(5, "eval_f1").sort_values(
-            by="eval_f1", ascending=False
-        )
-        modern_bert_top_5 = modern_bert_df.nlargest(5, "eval_f1").sort_values(
-            by="eval_f1", ascending=False
-        )
-
-        # Devolvemos un diccionario con los 5 mejores de bert_base y los 5 mejores de modern_bert
-        top_5 = {
-            "bert_base": bert_base_top_5.to_dict(orient="records"),
-            "modern_bert": modern_bert_top_5.to_dict(orient="records"),
-        }
-
-        return top_5
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-
-@router.post("/tmp/statistics_dataset")
-def get_dataset_stats(
-    dataset: DatasetEnum = DatasetEnum.EDOS_REDUCED_FULL,
-):
-    """
-    Limpia y recoge los resultados de los csvs de los modelos y los junta en uno solo
-    """
-    try:
-        # Creamos dataset con los datos
-        df = pd.read_csv(dataset.csv_path)
-
-        # Obtenemos el count de cada split
-        split_counts = df["split"].value_counts().to_dict()
-        print(split_counts)
-
-        # Obtenemos el porcentaje de cada split
-        split_percentages = (df["split"].value_counts(normalize=True) * 100).to_dict()
-        print(split_percentages)
-
-        # Obtenemos el count de cada label_sexist
-        label_counts = df["label_sexist"].value_counts().to_dict()
-        print(label_counts)
-
-        # Obtenemos el count de cada label_sexist por split
-        label_split_counts = (
-            df.groupby(["split", "label_sexist"]).size().unstack(fill_value=0).to_dict()
-        )
-        print(label_split_counts)
-
-        return "Done"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

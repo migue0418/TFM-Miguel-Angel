@@ -73,7 +73,7 @@ def train_model_4_sexism_grades(
     model: ModelsEnum,
 ):
     """
-    Train a sexism detection model of 4 grades with the specified dataset and model
+    Train a sexism detection model of 4 grades with the specified dataset and model. Look Jupyter notebook for last version.
     """
     try:
         # Train the model
@@ -421,7 +421,6 @@ def evaluate_classification_model(
             max_length=128,
         )
 
-        # ---------- inferencia ----------
         batch_size = 32
         texts = df["text"].tolist()
 
@@ -458,7 +457,7 @@ def evaluate_classification_model(
 
                 preds.append(pred_name)
 
-        # ---------- dataframe de salida ----------
+        # Metemos las predicciones en el dataset
         df["predict_edos"] = preds
         for col, values in score_cols.items():
             df[col] = values
@@ -466,18 +465,18 @@ def evaluate_classification_model(
         out_cols = ["text", column_label, "predict_edos"] + list(score_cols.keys())
         df[out_cols].to_csv(predictions_file, index=False)
 
-        # 1) Normaliza etiquetas reales y predichas a minúsculas
+        # Normaliza etiquetas reales y predichas a minúsculas
         y_true = df[column_label].astype(str).str.strip().str.lower()
         y_pred = df["predict_edos"].astype(str).str.strip().str.lower()
 
-        # 2) Clasificación y matriz de confusión (scikit-learn)
+        # Clasificación y matriz de confusión (scikit-learn)
         from sklearn.metrics import classification_report, confusion_matrix
 
         cls_report = classification_report(
             y_true, y_pred, output_dict=True, zero_division=0
         )
 
-        # 3) Guarda las métricas a disco (opcional)
+        # Guarda las métricas a disco (opcional)
         (
             pd.DataFrame(cls_report)
             .T.round(4)
@@ -487,13 +486,13 @@ def evaluate_classification_model(
             )
         )
 
-        # --- calcula matriz ---------------------------------
+        # Calculamos la matriz de confusión
         conf_mat = confusion_matrix(y_true, y_pred, labels=labels)
 
         import matplotlib.pyplot as plt
         import seaborn as sns
 
-        # --- plot & save ------------------------------------
+        # Pintamos la figura
         plt.figure(figsize=(8, 6))
         sns.heatmap(
             conf_mat,
@@ -507,13 +506,11 @@ def evaluate_classification_model(
         plt.ylabel("True label")
         plt.title("Confusion Matrix")
 
-        # nombre de archivo con timestamp para evitar sobrescrituras
+        # La guardamos
         img_name = f"confusion_matrix.png"
         img_path = os.path.join(result_path, img_name)
         plt.savefig(img_path, dpi=300, bbox_inches="tight")
         plt.close()  # libera memoria
-
-        # --- opcional: registrar la ruta --------------------
         print(f"Matriz de confusión guardada en: {img_path}")
 
         return {

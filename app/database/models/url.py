@@ -26,7 +26,7 @@ class URL(Base):
 
     domain = relationship("Domain", back_populates="urls")
 
-    # relación inversa -------------------------------------------------
+    # Relación inversa
     urls_sexist_content = relationship(
         "URLSexistContent", back_populates="url", cascade="all, delete-orphan"
     )

@@ -21,7 +21,7 @@ from app.core.config import settings
 from app.enums.datasets_enums import DatasetEnum
 from app.enums.models_enums import ModelsEnum, ModelsGenerativeEnum
 from app.utils.bias_classification import get_model_path, predict_sexism_batch
-from app.utils.results import _best_run, get_latex_table
+from app.utils.results import _best_run, get_latex_table, txt_to_int
 
 router = APIRouter(
     prefix="/results",
@@ -76,7 +76,7 @@ async def get_dataset_table_best_results(
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
-# ---------- mapeo texto → número solicitado -----------------------------
+# Mapeo base (luego puede sobreescribirse)
 MAP_TXT_NUM = {
     "sexist": 3,
     "not sexist": 0,
@@ -96,31 +96,6 @@ MAP_NUM_GOLD = {
 }
 
 
-def txt_to_int(mapper, serie: pd.Series) -> pd.Series:
-    serie_norm = serie.astype(str).str.strip().str.lower()
-    out = serie_norm.map(mapper)
-
-    # detecta etiquetas sin correspondencia
-    if out.isna().any():
-        missing = serie_norm[out.isna()].unique()
-        raise ValueError(f"Etiquetas sin mapear: {missing}")
-
-    return out.astype(int)
-
-
-def int_to_txt(mapper, serie: pd.Series) -> pd.Series:
-    serie_norm = serie.astype(int)
-    out = serie_norm.map(mapper)
-
-    # detecta etiquetas sin correspondencia
-    if out.isna().any():
-        missing = serie_norm[out.isna()].unique()
-        raise ValueError(f"Etiquetas sin mapear: {missing}")
-
-    return str(out)
-
-
-# --------------------------------------------------------------------------- #
 @router.post("/evaluation/classification-models")
 def evaluate_classification_model(
     dataset: DatasetEnum,
@@ -132,9 +107,7 @@ def evaluate_classification_model(
     Genera results_<model>.csv con classification_report completo.
     """
     try:
-        # ------- rutas -------
         dataset_folder = str(dataset.csv_path).split("\\")[-1].split(".csv")[0]
-        carpeta = f"app/results/{dataset_folder}"
         folder = (
             "3_labels_classification"
             if "3_SEXISM" in dataset.name
@@ -148,7 +121,6 @@ def evaluate_classification_model(
         if not pred_csv.exists():
             raise HTTPException(404, "predictions_*.csv no encontrado")
 
-        # ------- leer CSV ----
         df = pd.read_csv(pred_csv)
 
         label_col = (
@@ -163,7 +135,6 @@ def evaluate_classification_model(
         y_true_num = txt_to_int(MAP_NUM_GOLD, df[label_col])
         y_pred_num = txt_to_int(MAP_TXT_NUM, df[pred_col])
 
-        # --- verificar que todas las etiquetas han sido mapeadas -------------
         if y_true_num.isna().any() or y_pred_num.isna().any():
             raise ValueError("Alguna etiqueta no coincide con el mapeo MAP_TXT_NUM")
 
@@ -194,73 +165,6 @@ def evaluate_classification_model(
 
     except Exception as e:
         raise HTTPException(500, f"Internal error: {e}")
-
-
-@router.post("/tmp/results-dedup")
-def dedup_best_f1():
-    """
-    Revisa cada resultados.csv
-    → elimina duplicados de hiperparámetros
-    → conserva la fila con mayor eval_f1 en cada grupo
-    → guarda de nuevo el CSV.
-    """
-    try:
-        PARAM_COLS = [
-            "num_epochs",
-            "learning_rate",
-            "weight_decay",
-            "batch_size",
-        ]
-
-        for dataset in ["reduced_edos", "reduced_edos_10k"]:
-            for model in [ModelsEnum.BERT_BASE, ModelsEnum.MODERN_BERT]:
-
-                csv_path = (
-                    f"app/results/{dataset}/{model.value.split('/')[-1]}/resultados.csv"
-                )
-                df = pd.read_csv(csv_path)
-                # -------------------
-                # 2. Columnas a analizar
-                # -------------------
-                PARAM_COLS = [
-                    "num_epochs",
-                    "learning_rate",
-                    "weight_decay",
-                    "batch_size",
-                ]
-                print(csv_path)
-                print("Valores probados por hiperparámetro:\n")
-                unique_values = {}
-                for col in PARAM_COLS:
-                    vals = sorted(df[col].unique())
-                    unique_values[col] = vals
-                    print(f"  {col}: {vals}")
-
-                # -------------------
-                # 3. (Opcional) buscar combinaciones faltantes
-                # -------------------
-                print("\nCombinaciones no evaluadas (si las hay):")
-                # producto cartesiano con todos los valores observados
-                from itertools import product
-
-                all_combos = list(product(*unique_values.values()))
-
-                # convertir DataFrame de combos existentes para comparar
-                existing = set(df[PARAM_COLS].apply(tuple, axis=1).tolist())
-
-                missing = [combo for combo in all_combos if combo not in existing]
-
-                if missing:
-                    for m in missing:
-                        combo_str = ", ".join(f"{c}={v}" for c, v in zip(PARAM_COLS, m))
-                        print("  •", combo_str)
-                else:
-                    print("  Ninguna: ya probaste todas las combinaciones observadas.")
-
-        return {"status": "OK"}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
 
 @router.post("/print-diagram")
@@ -326,7 +230,7 @@ def diagram_results(
         # Convertimos a DataFrame para facilitar el manejo
         results_df = pd.DataFrame(results)
 
-        # 1️⃣  Paleta fija
+        # Paleta de colores que vamos a usar
         palette = {
             "bert-base-uncased": "#1f77b4",  # azul
             "ModernBERT-base": "#2ca02c",  # verde
@@ -341,7 +245,7 @@ def diagram_results(
         )  # orden deseado en eje X
         model_order = list(palette.keys())  # orden de la leyenda
 
-        # ── 2️⃣  Malla completa dataset×modelo ────────────────────────────────────────
+        # Malla completa de dataset x model
         full_index = pd.MultiIndex.from_product(
             [dataset_order, model_order], names=["dataset", "model"]
         )
@@ -350,7 +254,7 @@ def diagram_results(
             results_df.set_index(["dataset", "model"]).reindex(full_index).reset_index()
         )
 
-        # ── 3️⃣  Indicamos la(s) barra(s) mejor(es) por dataset ───────────────────────
+        # Obtenemos la mejor barra
         full_df["is_best"] = full_df.groupby("dataset")["f1"].transform(
             lambda s: s == s.max()
         )
@@ -364,14 +268,11 @@ def diagram_results(
             full_df["model"], categories=model_order, ordered=True
         )
 
-        # ── 4️⃣  ¡Clave!: ordenar **primero por modelo y luego por dataset** ──────────
-        # Seaborn crea los parches recorriendo humores (modelos) exteriormente y,
-        # dentro de cada modelo, todos los datasets!
+        # Ordenamos por dataset y modelo
         full_df_sorted = full_df.sort_values(["model", "dataset"]).reset_index(
             drop=True
         )
 
-        # ── 5️⃣  Dibujamos la gráfica ────────────────────────────────────────────────
         fig, ax = plt.subplots(figsize=(12, 6))
 
         sns.barplot(
@@ -385,14 +286,13 @@ def diagram_results(
             ax=ax,
         )
 
-        # ── 6️⃣  Borde negro a la(s) mejor(es) barra(s) de cada dataset ──────────────
+        # Borde negro a la mejor
         for patch, row in zip(ax.patches, full_df_sorted.itertuples(index=False)):
             if row.is_best and not np.isnan(row.f1):
                 patch.set_edgecolor("black")
                 patch.set_linewidth(1.5)
                 patch.set_zorder(3)
 
-        # ── 7️⃣  Ajustes estéticos finales ───────────────────────────────────────────
         ax.set_title("F1 por dataset y modelo")
         ax.set_xlabel("Dataset")
         ax.set_ylabel("F1")
@@ -494,7 +394,6 @@ def predictions_classification_models(
         raise HTTPException(500, f"Internal error: {e}")
 
 
-# --------------------------------------------------------------------------- #
 @router.post("/evaluation/generative-models")
 def evaluate_classification_model(
     dataset: DatasetEnum,
@@ -784,6 +683,7 @@ def get_table_results_bert(
     dataset: str = "edos5k",
     model: str = "bert-base-uncased",
 ):
+    """Genera las tablas de los apéndices del documento"""
     df = pd.read_csv(csv_file.file)
 
     # Ponemos todos los epochs a 20

@@ -45,7 +45,6 @@ export const ToastProvider = ({ children }) => {
   );
 };
 
-/* ---------- tarjeta visual ---------- */
 const Icon = ({ children }) => (
   <svg
     width="20" height="20" viewBox="0 0 24 24"
@@ -108,7 +107,6 @@ function ToastCard({ variant, message, onClose }) {
   );
 }
 
-/* ---------- hook ---------- */
 export const useToast = () => {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');

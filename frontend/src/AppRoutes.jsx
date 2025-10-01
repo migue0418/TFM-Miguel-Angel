@@ -25,10 +25,8 @@ import Dashboard from './pages/Dashboard';
 export default function AppRoutes() {
     return (
     <Routes>
-        {/* 1) Login fuera del layout  ---------------------------------------- */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* 2) Zona protegida bajo /  (basename aporta “/app”)  --------------- */}
         <Route
             element={
                 <ProtectedRoute>

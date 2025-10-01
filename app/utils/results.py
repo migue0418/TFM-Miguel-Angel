@@ -25,6 +25,18 @@ GENERATIVE_SHOW_COLS = [
 ]
 
 
+def txt_to_int(mapper, serie: pd.Series) -> pd.Series:
+    serie_norm = serie.astype(str).str.strip().str.lower()
+    out = serie_norm.map(mapper)
+
+    # detecta etiquetas sin correspondencia
+    if out.isna().any():
+        missing = serie_norm[out.isna()].unique()
+        raise ValueError(f"Etiquetas sin mapear: {missing}")
+
+    return out.astype(int)
+
+
 def _best_run(csv_path: Path) -> pd.Series:
     """Devuelve la mejor fila según F1 y Accuracy."""
     df = pd.read_csv(csv_path)

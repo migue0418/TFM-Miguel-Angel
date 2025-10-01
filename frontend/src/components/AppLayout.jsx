@@ -65,10 +65,8 @@ const AppLayout = () => {
         <div id="FullPageWrapper">
             <header className="app-header" id="TopNavigation">
                 <nav className="nav-container">
-                    {/* --------- LOGO --------- */}
                     <a href='/app'><LogoPrincipal size={0.25} color='var(--color-primary)'/></a>
 
-                    {/* --------- ENLACES PRINCIPALES --------- */}
                     <ul className="nav-links">
                         {SexismDetectionPrivileges ? (
                           <>
@@ -176,7 +174,6 @@ const AppLayout = () => {
                         ): null}
                     </ul>
 
-                    {/* --------- MENÚ DE USUARIO --------- */}
                     <div className="user-wrapper"  ref={menuRef}>
                         <button className="icon-btn" onClick={toggleMenu} aria-label="Menú de usuario">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -196,7 +193,6 @@ const AppLayout = () => {
                 </nav>
             </header>
 
-            {/* --------- CONTENIDO DINÁMICO --------- */}
             <main className="app-main">
                 <Outlet />
             </main>
