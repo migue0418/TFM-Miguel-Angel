@@ -341,8 +341,11 @@ app/                    Backend FastAPI
 frontend/               Aplicación React (analizador de sexismo + analíticas + administración)
 ```
 
-Para una descripción detallada de la arquitectura (capas de persistencia, autenticación/roles,
-convenciones de los *enums* de modelos/datasets, etc.), consulta [CLAUDE.md](CLAUDE.md).
+El backend combina dos capas de persistencia: una base **SQLAlchemy/SQLite** para el dominio
+de *web crawling* y analíticas (`Domain`, `URL`, `URLSexistContent`), y un wrapper **async
+SQLite** independiente para autenticación (`users`, `roles`). La resolución de modelos y
+datasets de ML sigue las convenciones de `DatasetEnum`/`ModelsEnum` (`app/enums/`), que mapean
+cada dataset/modelo a sus rutas de datos y checkpoints bajo `app/files/` y `app/models/`.
 
 
 ## Referencias principales
