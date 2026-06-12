@@ -112,6 +112,12 @@ se usan exclusivamente como **test de generalización** (ningún modelo se entre
 
 ## Resultados principales
 
+![F1 por dataset y modelo (clasificación binaria)](images/binary_results_diagram.png)
+
+*Figura: comparación de F1 (macro) por modelo y dataset en el esquema de clasificación binaria.
+`ModernBERT-base` y `bert-base-uncased` dominan en EDOS y en las frases sintéticas; en
+RedditBIAS (transferencia de dominio) los LLMs generativos llegan a superarlos.*
+
 ### Resumen ejecutivo
 
 - **Mejor configuración global**: `ModernBERT-base` sobre EDOS-10k (binario) — **F1 = 0.843,
@@ -178,6 +184,10 @@ aplicación full-stack que demuestra su uso en un escenario real:
 - **Autenticación y roles**: JWT, con tres roles —`admin` (gestión total, usuarios y roles),
   `sexism_detection` (lanzar y ver análisis) y `analytics` (solo lectura de analíticas).
 
+![Pantalla de inicio de sesión](images/LoginPage.png)
+
+*Figura: pantalla de inicio de sesión de la aplicación.*
+
 ### Detector de Sexismo
 
 Tres modos de análisis sobre el modelo binario:
@@ -189,6 +199,21 @@ Tres modos de análisis sobre el modelo binario:
 - **Dominio**: dado un dominio completo, el backend respeta `robots.txt`, localiza el/los
   `sitemap.xml`, extrae las URLs indexables y ejecuta la inferencia en paralelo,
   almacenando los resultados por URL.
+
+![Detector de Sexismo en Texto](<images/SexismDetectionTextPage - Results.png>)
+
+*Figura: análisis de un texto libre, con el resultado global (% de frases sexistas) y el
+desglose frase a frase con su predicción y probabilidades.*
+
+![Detector de Sexismo en URL](<images/SexismDetectionURLPage - Results.png>)
+
+*Figura: análisis del contenido textual de una URL, con el mismo resumen global y detalle por
+frase, y un filtro opcional por etiqueta HTML.*
+
+![Analizador de Dominio](<images/SexismDetectionDomain - Results.png>)
+
+*Figura: análisis de un dominio completo a partir de su `sitemap.xml`, mostrando los sitemaps
+localizados y las URLs detectadas para su posterior inferencia.*
 
 **Prueba de concepto real**: se analizó el portal principal de la Universidad de Granada
 (`www.ugr.es`, contenidos en inglés bajo `/en/`). Sobre **590 URLs** y **12.643 frases**, solo
@@ -206,6 +231,25 @@ Módulo de consolidación de resultados con tres vistas:
 - **Listado de dominios**: dominios analizados, con búsqueda y acceso al detalle de cada uno.
 - **Listado de URLs por dominio**: paginado, con filtros por estado (sexista/no sexista) y
   acceso al detalle frase a frase de cada URL.
+
+![Dashboard de Analíticas](images/AnalyticsGlobalPage.png)
+
+*Figura: dashboard global, con el número de URLs y frases analizadas, el % global de sexismo
+estimado, el top-5 de frases más sexistas y un histograma de distribución de severidad.*
+
+![Listado de dominios](images/DomainsPage.png)
+
+*Figura: listado de dominios web analizados, con búsqueda y acceso al detalle de cada uno.*
+
+![Listado de URLs de un dominio](images/UrlsDomainPage.png)
+
+*Figura: listado paginado de URLs de un dominio, con su porcentaje de sexismo y clasificación
+(sexista / no sexista).*
+
+![Detalle de análisis de una URL](images/URLAnalysis.png)
+
+*Figura: detalle frase a frase del análisis de una URL concreta, con buscador y filtros por
+clasificación.*
 
 ### Lecciones aprendidas (despliegue)
 
